@@ -1,9 +1,235 @@
-CREATE TABLE STAFF (
-  amka CHAR(11) PRIMARY KEY,
-  first_name VARCHAR(50),
-  last_name VARCHAR(50),
-  birth_date DATE,
-  email VARCHAR(100),
-  phone VARCHAR(15),
-  hire_date DATE
-)
+-- Database creation
+-- CREATE DATABASE `hospital_db` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci */;
+DROP DATABASE IF EXISTS hospitaldb;
+CREATE DATABASE hospitaldb;
+use hospitaldb;
+
+-- Tables Creation
+CREATE TABLE Staff (
+    id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'The internal table id, primary key', 
+    amka CHAR(11) NOT NULL UNIQUE, 
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    birth_date DATE NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    phone VARCHAR(15),
+    hire_date DATE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    
+);
+
+CREATE TABLE Doctors (
+    staff_id INT PRIMARY KEY,
+    license_number VARCHAR(20) NOT NULL UNIQUE,    
+    specialty VARCHAR(50) NOT NULL,
+    rank VARCHAR(30) NOT NULL,    
+    supervisor_id INT,
+
+    FOREIGN KEY (staff_id) REFERENCES Staff(id) ON DELETE CASCADE,
+    FOREIGN KEY (supervisor_id) REFERENCES Doctors(staff_id),
+
+    CONSTRAINT chk_doctor_rank CHECK (rank IN ('Ειδικευόμενος', 'Επιμελητής Β΄', 'Επιμελητής Α΄', 'Διευθυντής')),
+    
+    CONSTRAINT chk_supervisor CHECK (
+        (rank = 'Ειδικευόμενος' AND supervisor_id IS NOT NULL) OR
+        (rank = 'Διευθυντής' AND supervisor_id IS NULL) OR
+        (rank NOT IN ('Ειδικευόμενος', 'Διευθυντής'))
+    )
+    -- Check how to forbid chain in supervising. Maybe I need triger
+    -- Check also DepartmentsDoctors
+);
+
+CREATE TABLE Nurses (
+    staff_id INT PRIMARY KEY,
+    rank VARCHAR(50) NOT NULL,
+    department_id INT NOT NULL,
+    FOREIGN KEY (staff_id) REFERENCES Staff(id) ON DELETE CASCADE,
+    FOREIGN KEY (department_id) REFERENCES Departments(id)
+    
+    CONSTRAINT chk_nurse_rank CHECK (rank IN ('Βοηθός Νοσηλευτή', 'Νοσηλευτής', 'Προϊστάμενος'))
+);
+
+CREATE TABLE Administrative_Staff (
+    staff_id INT PRIMARY KEY,
+    duty_role VARCHAR(100) NOT NULL,
+    office_location VARCHAR(50),    
+    department_id INT NOT NULL,    
+    FOREIGN KEY (staff_id) REFERENCES Staff(id) ON DELETE CASCADE,
+    FOREIGN KEY (department_id) REFERENCES Departments(id)
+);
+
+CREATE TABLE Departments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE, 
+    description TEXT, 
+    bed_count INT NOT NULL DEFAULT 0, 
+    location VARCHAR(100),
+    head_doctor_id INT, 
+    
+    FOREIGN KEY (head_doctor_id) REFERENCES Doctors(staff_id) ON DELETE SET NULL
+);
+
+CREATE TABLE Doctor_Departments (
+    doctor_id INT NOT NULL,
+    department_id INT NOT NULL,
+    
+    PRIMARY KEY (doctor_id, department_id),
+    
+    FOREIGN KEY (doctor_id) REFERENCES Doctors(staff_id) ON DELETE CASCADE,
+    FOREIGN KEY (department_id) REFERENCES Departments(id) ON DELETE CASCADE
+);
+
+CREATE TABLE Beds (
+    id INT AUTO_INCREMENT PRIMARY KEY,    
+    bed_number VARCHAR(20) NOT NULL UNIQUE,
+    bed_type VARCHAR(50) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'Available',
+    department_id INT NOT NULL,
+
+    FOREIGN KEY (department_id) REFERENCES Departments(id) ON DELETE CASCADE,
+    
+    --CONSTRAINT chk_bed_type CHECK (bed_type IN ('ΜΕΘ', 'μονόκλινο', 'πολύκλινο')),
+    
+    CONSTRAINT chk_bed_status CHECK (status IN ('διαθέσιμη', 'κατειλημμένη', 'υπό συντήρηση')),
+);
+
+CREATE TABLE Patients (
+    amka CHAR(11) PRIMARY KEY,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    father_name VARCHAR(50),
+    birth_date DATE NOT NULL,
+    gender ENUM('Male', 'Female', 'Other') NOT NULL,
+    weight DECIMAL(5,2),
+    height DECIMAL(3,2),
+    address VARCHAR(255),
+    phone VARCHAR(15),
+    email VARCHAR(100),
+    profession VARCHAR(100),
+    nationality VARCHAR(50),
+    insurance_provider VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE Emergency_Contacts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    patient_amka CHAR(11) NOT NULL,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    phone VARCHAR(15) NOT NULL,
+    relationship VARCHAR(50),
+    FOREIGN KEY (patient_amka) REFERENCES Patients(amka) ON DELETE CASCADE
+);
+
+CREATE TABLE Active_Substances (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    substance_name VARCHAR(255) NOT NULL UNIQUE
+);
+
+CREATE TABLE Medications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    product_name VARCHAR(255) NOT NULL,
+);
+
+-- Ενδιάμεσος πίνακας (M to M)
+CREATE TABLE Medication_Substances (
+    medication_id INT NOT NULL,
+    substance_id INT NOT NULL,
+    PRIMARY KEY (medication_id, substance_id),
+    FOREIGN KEY (medication_id) REFERENCES Medications(id) ON DELETE CASCADE,
+    FOREIGN KEY (substance_id) REFERENCES Active_Substances(id) ON DELETE CASCADE
+);
+
+CREATE TABLE Patient_Allergies (
+    patient_amka CHAR(11) NOT NULL,
+    substance_id INT NOT NULL,
+    PRIMARY KEY (patient_amka, substance_id),
+    FOREIGN KEY (patient_amka) REFERENCES Patients(amka) ON DELETE CASCADE,
+    FOREIGN KEY (substance_id) REFERENCES Active_Substances(id) ON DELETE CASCADE
+);
+
+CREATE TABLE KEN_Ref (
+    code VARCHAR(10) PRIMARY KEY,
+    base_cost DECIMAL(10,2) NOT NULL,
+    mdn_days INT NOT NULL
+);
+
+CREATE TABLE ICD10_Ref (
+    code VARCHAR(10) PRIMARY KEY,
+    description TEXT NOT NULL
+);
+
+CREATE TABLE Triage_Entries (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    patient_amka CHAR(11) NOT NULL,
+    arrival_time DATETIME NOT NULL,
+    symptoms TEXT,
+    urgency_level INT CHECK (urgency_level BETWEEN 1 AND 5),
+    referral_status VARCHAR(50),
+    FOREIGN KEY (patient_amka) REFERENCES Patients(amka) ON DELETE CASCADE
+);
+
+CREATE TABLE Hospitalizations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    patient_amka CHAR(11) NOT NULL,
+    bed_id INT NOT NULL,
+    department_id INT NOT NULL,
+    entry_date DATETIME NOT NULL,
+    exit_date DATETIME,
+    icd10_entry_code VARCHAR(10),
+    icd10_exit_code VARCHAR(10),
+    ken_code VARCHAR(10),
+    total_cost DECIMAL(10,2),
+    
+    FOREIGN KEY (patient_amka) REFERENCES Patients(amka),
+    FOREIGN KEY (bed_id) REFERENCES Beds(id),
+    FOREIGN KEY (department_id) REFERENCES Departments(id),
+    FOREIGN KEY (entry_diagnosis_code) REFERENCES ICD10_Ref(code),
+    FOREIGN KEY (exit_diagnosis_code) REFERENCES ICD10_Ref(code),
+    FOREIGN KEY (ken_code) REFERENCES KEN_Ref(code)
+);
+
+CREATE TABLE Shifts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    shift_type ENUM('Morning', 'Afternoon', 'Night') NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL
+);
+
+CREATE TABLE Staff_Shifts (
+    staff_id INT NOT NULL,
+    shift_id INT NOT NULL,
+    shift_date DATE NOT NULL,
+    department_id INT NOT NULL,
+    PRIMARY KEY (staff_id, shift_id, shift_date),
+    FOREIGN KEY (staff_id) REFERENCES Staff(id),
+    FOREIGN KEY (shift_id) REFERENCES Shifts(id),
+    FOREIGN KEY (department_id) REFERENCES Departments(id)
+);
+
+CREATE TABLE Prescriptions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    doctor_id INT NOT NULL,
+    patient_amka CHAR(11) NOT NULL,
+    medication_id INT NOT NULL,
+    hospitalization_id INT NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE,
+    dosage VARCHAR(50),
+    frequency VARCHAR(50),
+    FOREIGN KEY (doctor_id) REFERENCES Doctors(staff_id),
+    FOREIGN KEY (patient_amka) REFERENCES Patients(amka),
+    FOREIGN KEY (medication_id) REFERENCES Medications(id),
+    FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id)
+);
+
+CREATE TABLE Images (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    image_url VARCHAR(255) NOT NULL,
+    description TEXT,
+    doctor_id INT,
+    department_id INT,
+    FOREIGN KEY (doctor_id) REFERENCES Doctors(staff_id) ON DELETE CASCADE,
+    FOREIGN KEY (department_id) REFERENCES Departments(id) ON DELETE CASCADE
+);
