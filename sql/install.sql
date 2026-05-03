@@ -6,6 +6,7 @@ use hospitaldb;
 
 -- Tables Creation
 CREATE TABLE Staff (
+    -- Maybe it staff type will be needed for checking if shifts are valid
     id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'The internal table id, primary key', 
     amka CHAR(11) NOT NULL UNIQUE, 
     first_name VARCHAR(50) NOT NULL,
@@ -15,8 +16,8 @@ CREATE TABLE Staff (
     phone VARCHAR(15),
     hire_date DATE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    active BOOLEAN DEFUlT TRUE
 );
 
 CREATE TABLE Doctors (
@@ -36,8 +37,6 @@ CREATE TABLE Doctors (
         (rank = 'Διευθυντής' AND supervisor_id IS NULL) OR
         (rank NOT IN ('Ειδικευόμενος', 'Διευθυντής'))
     )
-    -- Check how to forbid chain in supervising. Maybe I need triger
-    -- Check also DepartmentsDoctors
 );
 
 CREATE TABLE Nurses (
@@ -66,7 +65,10 @@ CREATE TABLE Departments (
     bed_count INT NOT NULL DEFAULT 0, 
     location VARCHAR(100),
     head_doctor_id INT, 
-    
+    min_doctors INT DEFAULT 3
+    min_nurses INT DEFAULT 6
+    min_admins INT DEFAULT 2
+
     FOREIGN KEY (head_doctor_id) REFERENCES Doctors(staff_id) ON DELETE SET NULL
 );
 
@@ -89,18 +91,17 @@ CREATE TABLE Beds (
 
     FOREIGN KEY (department_id) REFERENCES Departments(id) ON DELETE CASCADE,
     
-    --CONSTRAINT chk_bed_type CHECK (bed_type IN ('ΜΕΘ', 'μονόκλινο', 'πολύκλινο')),
-    
     CONSTRAINT chk_bed_status CHECK (status IN ('διαθέσιμη', 'κατειλημμένη', 'υπό συντήρηση')),
 );
 
 CREATE TABLE Patients (
-    amka CHAR(11) PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    amka CHAR(11) NOT NULL UNIQUE,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     father_name VARCHAR(50),
     birth_date DATE NOT NULL,
-    gender ENUM('Male', 'Female', 'Other') NOT NULL,
+    gender VARCHAR(6) NOT NULL,
     weight DECIMAL(5,2),
     height DECIMAL(3,2),
     address VARCHAR(255),
@@ -110,16 +111,19 @@ CREATE TABLE Patients (
     nationality VARCHAR(50),
     insurance_provider VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+
+    CONSTRAINT chk_gender CHECK (gender IN ('Male', 'Female', 'Other'))
 );
 
 CREATE TABLE Emergency_Contacts (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    patient_amka CHAR(11) NOT NULL,
+    patient_id INT NOT NULL,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     phone VARCHAR(15) NOT NULL,
     relationship VARCHAR(50),
-    FOREIGN KEY (patient_amka) REFERENCES Patients(amka) ON DELETE CASCADE
+    FOREIGN KEY (patient_id) REFERENCES Patients(id) ON DELETE CASCADE
 );
 
 CREATE TABLE Active_Substances (
@@ -142,10 +146,10 @@ CREATE TABLE Medication_Substances (
 );
 
 CREATE TABLE Patient_Allergies (
-    patient_amka CHAR(11) NOT NULL,
+    patient_id CHAR(11) NOT NULL,
     substance_id INT NOT NULL,
-    PRIMARY KEY (patient_amka, substance_id),
-    FOREIGN KEY (patient_amka) REFERENCES Patients(amka) ON DELETE CASCADE,
+    PRIMARY KEY (patient_id, substance_id),
+    FOREIGN KEY (patient_id) REFERENCES Patients(id) ON DELETE CASCADE,
     FOREIGN KEY (substance_id) REFERENCES Active_Substances(id) ON DELETE CASCADE
 );
 
@@ -162,17 +166,18 @@ CREATE TABLE ICD10_Ref (
 
 CREATE TABLE Triage_Entries (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    patient_amka CHAR(11) NOT NULL,
+    patient_id INT NOT NULL,
     arrival_time DATETIME NOT NULL,
     symptoms TEXT,
     urgency_level INT CHECK (urgency_level BETWEEN 1 AND 5),
     referral_status VARCHAR(50),
-    FOREIGN KEY (patient_amka) REFERENCES Patients(amka) ON DELETE CASCADE
+    FOREIGN KEY (patient_id) REFERENCES Patients(id) ON DELETE CASCADE,
+    CONSTRAINT chk_referal CHECK (referral_status IN ('Exit', 'Hospitalization'))
 );
 
 CREATE TABLE Hospitalizations (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    patient_amka CHAR(11) NOT NULL,
+    patient_id INT NOT NULL,
     bed_id INT NOT NULL,
     department_id INT NOT NULL,
     entry_date DATETIME NOT NULL,
@@ -182,7 +187,7 @@ CREATE TABLE Hospitalizations (
     ken_code VARCHAR(10),
     total_cost DECIMAL(10,2),
     
-    FOREIGN KEY (patient_amka) REFERENCES Patients(amka),
+    FOREIGN KEY (patient_id) REFERENCES Patients(id),
     FOREIGN KEY (bed_id) REFERENCES Beds(id),
     FOREIGN KEY (department_id) REFERENCES Departments(id),
     FOREIGN KEY (entry_diagnosis_code) REFERENCES ICD10_Ref(code),
@@ -192,21 +197,41 @@ CREATE TABLE Hospitalizations (
 
 CREATE TABLE Shifts (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    shift_type ENUM('Morning', 'Afternoon', 'Night') NOT NULL,
-    start_time TIME NOT NULL,
-    end_time TIME NOT NULL
+    department_id INT NOT NULL,
+    shift_type VARCHAR(9) NOT NULL,
+    shift_date DATE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    shift_status VARCHAR(10) NOT NULL DEFAULT 'scheculed'
+    
+    UNIQUE KEY department_shift_date (department_id, shift_date, shift_type),
+    FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE RESTRICT,
+    CONSTRAINT chk_shifttype CHECK (shift_type IN ('Morning', 'Afternoon', 'Night')),
+    CONSTRAINT chk_shiftstatus CHECK (shift_status IN ('scheduled', 'ongoing', 'completed', 'cancelled'))
 );
 
 CREATE TABLE Staff_Shifts (
     staff_id INT NOT NULL,
     shift_id INT NOT NULL,
-    shift_date DATE NOT NULL,
-    department_id INT NOT NULL,
-    PRIMARY KEY (staff_id, shift_id, shift_date),
+    start_time TIME,
+    end_time TIME,
+    started_date DATE,
+    PRIMARY KEY (staff_id, shift_id),
     FOREIGN KEY (staff_id) REFERENCES Staff(id),
     FOREIGN KEY (shift_id) REFERENCES Shifts(id),
-    FOREIGN KEY (department_id) REFERENCES Departments(id)
 );
+
+CREATE TABLE Shift_Monthly_Limits (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    staff_id INT NOT NULL,
+    ml_year INT NOT NULL,
+    ml_month INT NOT NULL CHECK (ml_month BETWEEN 1 AND 12),
+    ml_num INT DEFAULT 0,
+    FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE CASCADE,
+    UNIQUE KEY staff_ml_month (staff_id, ml_year, ml_month),
+);
+
+
 
 CREATE TABLE Prescriptions (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -233,3 +258,9 @@ CREATE TABLE Images (
     FOREIGN KEY (doctor_id) REFERENCES Doctors(staff_id) ON DELETE CASCADE,
     FOREIGN KEY (department_id) REFERENCES Departments(id) ON DELETE CASCADE
 );
+
+CREATE LabExam (
+    id 
+)
+
+-- FUNCTIONS
