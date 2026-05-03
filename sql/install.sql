@@ -259,8 +259,66 @@ CREATE TABLE Images (
     FOREIGN KEY (department_id) REFERENCES Departments(id) ON DELETE CASCADE
 );
 
-CREATE LabExam (
-    id 
-)
+CREATE TABLE LabExam (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(20) NOT NULL,
+    exam_type VARCHAR(50) NOT NULL,
+    exam_date DATETIME NOT NULL,
+    result TEXT,
+    cost DECIMAL(10,2) NOT NULL,
+    doctor_id INT, 
+    hospitalization_id INT NOT NULL,
+    FOREIGN KEY (doctor_id) REFERENCES Doctors(staff_id) ON DELETE SET NULL,
+    FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id) ON DELETE CASCADE
+);
 
--- FUNCTIONS
+CREATE TABLE Operating_Rooms (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    room_type TEXT NOT NULL
+);
+
+CREATE TABLE Medical_Acts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    category VARCHAR(30) NOT NULL,
+    duration_minutes INT NOT NULL,
+    cost DECIMAL(10,2) NOT NULL,
+    scheduled_time DATETIME NOT NULL,
+    hospitalization_id INT NOT NULL,
+    room_id INT NOT NULL,
+    main_doctor_id INT NOT NULL,
+    FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id) ON DELETE CASCADE,
+    FOREIGN KEY (room_id) REFERENCES Operating_Rooms(id),
+    FOREIGN KEY (main_doctor_id) REFERENCES Doctors(staff_id),
+    
+    CONSTRAINT chk_med_act_category CHECK (category IN ('Χειρουργική', 'Διαγνωστική', 'Θεραπευτική'))
+);
+
+-- Πίνακας γέφυρα για βοηθούς  επέμβασης (M:N)
+CREATE TABLE Medical_Act_Assistants (
+    act_id INT NOT NULL,
+    staff_id INT NOT NULL,
+    PRIMARY KEY (act_id, staff_id),
+    FOREIGN KEY (act_id) REFERENCES Medical_Acts(id) ON DELETE CASCADE,
+    FOREIGN KEY (staff_id) REFERENCES Staff(id) ON DELETE CASCADE
+);
+
+CREATE TABLE Hospitalization_Ratings (
+    hospitalization_id INT PRIMARY KEY,
+    medical_care_quality INT CHECK (medical_care_quality BETWEEN 1 AND 5),
+    nursing_care_quality TINYINT CHECK (nursing_care_quality BETWEEN 1 AND 5),
+    cleanliness TINYINT CHECK (cleanliness BETWEEN 1 AND 5),
+    food_quality TINYINT CHECK (food_quality BETWEEN 1 AND 5),
+    overall_experience TINYINT CHECK (overall_experience BETWEEN 1 AND 5),
+    FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id) ON DELETE CASCADE
+);
+
+CREATE TABLE Doctor_Ratings (
+    hospitalization_id INT,
+    doctor_id INT,
+    medical_care_quality TINYINT CHECK (medical_care_quality BETWEEN 1 AND 5),
+    PRIMARY KEY (hospitalization_id, doctor_id),
+    FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id) REFERENCES Doctors(staff_id) ON DELETE CASCADE
+);
