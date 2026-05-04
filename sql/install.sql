@@ -358,7 +358,7 @@ BEGIN
         SET depth = depth + 1;
     END WHILE;
 
-    RETURN FALSE; --there isn't any cycle
+    RETURN FALSE; -- there isn't any cycle
 END;
 
 DROP TRIGGER IF EXISTS trg_doctor_insert_no_cycle;
@@ -388,3 +388,23 @@ BEGIN
         END IF;
     END IF;
 END;
+    
+    DROP TRIGGER IF EXISTS trg_check_allergy_before_prescription //
+
+CREATE TRIGGER trg_check_allergy_before_prescription
+BEFORE INSERT ON Prescriptions
+FOR EACH ROW
+BEGIN
+    DECLARE allergy_count INT;
+
+    SELECT COUNT(*) INTO allergy_count
+    FROM Patient_Allergies pa
+    JOIN Medication_Substances ms ON pa.substance_id = ms.substance_id
+    WHERE pa.patient_amka = NEW.patient_amka
+      AND ms.medication_id = NEW.medication_id;
+
+    IF allergy_count > 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'ΑΚΥΡΩΣΗ ΣΥΝΤΑΓΟΓΡΑΦΗΣΗΣ: Ο ασθενής είναι αλλεργικός σε κάποια δραστική ουσία αυτού του φαρμάκου.';
+    END IF;
+END 
