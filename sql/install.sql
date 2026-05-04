@@ -17,7 +17,29 @@ CREATE TABLE Staff (
     hire_date DATE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    active BOOLEAN DEFUlT TRUE
+    active BOOLEAN DEFAULT TRUE
+);
+
+CREATE TABLE Patients (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    amka CHAR(11) NOT NULL UNIQUE,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    father_name VARCHAR(50),
+    birth_date DATE NOT NULL,
+    gender VARCHAR(10) NOT NULL,
+    weight DECIMAL(5,2),
+    height DECIMAL(3,2),
+    address VARCHAR(255),
+    phone VARCHAR(15),
+    email VARCHAR(100),
+    profession VARCHAR(100),
+    nationality VARCHAR(50),
+    insurance_provider VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT chk_gender CHECK (gender IN ('Male', 'Female', 'Other'))
 );
 
 CREATE TABLE Doctors (
@@ -37,6 +59,21 @@ CREATE TABLE Doctors (
         (rank = 'Διευθυντής' AND supervisor_id IS NULL) OR
         (rank NOT IN ('Ειδικευόμενος', 'Διευθυντής'))
     )
+    -- Check cyclic supervising
+);
+
+CREATE TABLE Departments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE, 
+    description TEXT, 
+    bed_count INT NOT NULL DEFAULT 0, 
+    location VARCHAR(100),
+    head_doctor_id INT, 
+    min_doctors INT DEFAULT 3,
+    min_nurses INT DEFAULT 6,
+    min_admins INT DEFAULT 2,
+
+    FOREIGN KEY (head_doctor_id) REFERENCES Doctors(staff_id) ON DELETE SET NULL
 );
 
 CREATE TABLE Nurses (
@@ -44,7 +81,7 @@ CREATE TABLE Nurses (
     rank VARCHAR(50) NOT NULL,
     department_id INT NOT NULL,
     FOREIGN KEY (staff_id) REFERENCES Staff(id) ON DELETE CASCADE,
-    FOREIGN KEY (department_id) REFERENCES Departments(id)
+    FOREIGN KEY (department_id) REFERENCES Departments(id),
     
     CONSTRAINT chk_nurse_rank CHECK (rank IN ('Βοηθός Νοσηλευτή', 'Νοσηλευτής', 'Προϊστάμενος'))
 );
@@ -56,20 +93,6 @@ CREATE TABLE Administrative_Staff (
     department_id INT NOT NULL,    
     FOREIGN KEY (staff_id) REFERENCES Staff(id) ON DELETE CASCADE,
     FOREIGN KEY (department_id) REFERENCES Departments(id)
-);
-
-CREATE TABLE Departments (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE, 
-    description TEXT, 
-    bed_count INT NOT NULL DEFAULT 0, 
-    location VARCHAR(100),
-    head_doctor_id INT, 
-    min_doctors INT DEFAULT 3
-    min_nurses INT DEFAULT 6
-    min_admins INT DEFAULT 2
-
-    FOREIGN KEY (head_doctor_id) REFERENCES Doctors(staff_id) ON DELETE SET NULL
 );
 
 CREATE TABLE Doctor_Departments (
@@ -86,34 +109,12 @@ CREATE TABLE Beds (
     id INT AUTO_INCREMENT PRIMARY KEY,    
     bed_number VARCHAR(20) NOT NULL UNIQUE,
     bed_type VARCHAR(50) NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'Available',
+    status VARCHAR(50) NOT NULL DEFAULT 'Διαθέσιμη',
     department_id INT NOT NULL,
 
     FOREIGN KEY (department_id) REFERENCES Departments(id) ON DELETE CASCADE,
     
-    CONSTRAINT chk_bed_status CHECK (status IN ('διαθέσιμη', 'κατειλημμένη', 'υπό συντήρηση')),
-);
-
-CREATE TABLE Patients (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    amka CHAR(11) NOT NULL UNIQUE,
-    first_name VARCHAR(50) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
-    father_name VARCHAR(50),
-    birth_date DATE NOT NULL,
-    gender VARCHAR(6) NOT NULL,
-    weight DECIMAL(5,2),
-    height DECIMAL(3,2),
-    address VARCHAR(255),
-    phone VARCHAR(15),
-    email VARCHAR(100),
-    profession VARCHAR(100),
-    nationality VARCHAR(50),
-    insurance_provider VARCHAR(100),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-
-    CONSTRAINT chk_gender CHECK (gender IN ('Male', 'Female', 'Other'))
+    CONSTRAINT chk_bed_status CHECK (status IN ('Διαθέσιμη', 'Κατειλημμένη', 'Υπό συντήρηση'))
 );
 
 CREATE TABLE Emergency_Contacts (
@@ -124,33 +125,6 @@ CREATE TABLE Emergency_Contacts (
     phone VARCHAR(15) NOT NULL,
     relationship VARCHAR(50),
     FOREIGN KEY (patient_id) REFERENCES Patients(id) ON DELETE CASCADE
-);
-
-CREATE TABLE Active_Substances (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    substance_name VARCHAR(255) NOT NULL UNIQUE
-);
-
-CREATE TABLE Medications (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    product_name VARCHAR(255) NOT NULL,
-);
-
--- Ενδιάμεσος πίνακας (M to M)
-CREATE TABLE Medication_Substances (
-    medication_id INT NOT NULL,
-    substance_id INT NOT NULL,
-    PRIMARY KEY (medication_id, substance_id),
-    FOREIGN KEY (medication_id) REFERENCES Medications(id) ON DELETE CASCADE,
-    FOREIGN KEY (substance_id) REFERENCES Active_Substances(id) ON DELETE CASCADE
-);
-
-CREATE TABLE Patient_Allergies (
-    patient_id CHAR(11) NOT NULL,
-    substance_id INT NOT NULL,
-    PRIMARY KEY (patient_id, substance_id),
-    FOREIGN KEY (patient_id) REFERENCES Patients(id) ON DELETE CASCADE,
-    FOREIGN KEY (substance_id) REFERENCES Active_Substances(id) ON DELETE CASCADE
 );
 
 CREATE TABLE KEN_Ref (
@@ -173,6 +147,7 @@ CREATE TABLE Triage_Entries (
     referral_status VARCHAR(50),
     FOREIGN KEY (patient_id) REFERENCES Patients(id) ON DELETE CASCADE,
     CONSTRAINT chk_referal CHECK (referral_status IN ('Exit', 'Hospitalization'))
+    
 );
 
 CREATE TABLE Hospitalizations (
@@ -186,13 +161,42 @@ CREATE TABLE Hospitalizations (
     icd10_exit_code VARCHAR(10),
     ken_code VARCHAR(10),
     total_cost DECIMAL(10,2),
+    triage_id INT NOT NULL,
     
     FOREIGN KEY (patient_id) REFERENCES Patients(id),
     FOREIGN KEY (bed_id) REFERENCES Beds(id),
     FOREIGN KEY (department_id) REFERENCES Departments(id),
-    FOREIGN KEY (entry_diagnosis_code) REFERENCES ICD10_Ref(code),
-    FOREIGN KEY (exit_diagnosis_code) REFERENCES ICD10_Ref(code),
-    FOREIGN KEY (ken_code) REFERENCES KEN_Ref(code)
+    FOREIGN KEY (icd10_entry_code) REFERENCES ICD10_Ref(code),
+    FOREIGN KEY (icd10_exit_code) REFERENCES ICD10_Ref(code),
+    FOREIGN KEY (ken_code) REFERENCES KEN_Ref(code),
+    FOREIGN KEY (triage_id) REFERENCES Triage_Entries(id)
+);
+
+CREATE TABLE Active_Substances (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    substance_name VARCHAR(255) NOT NULL UNIQUE
+);
+
+CREATE TABLE Medications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    product_name VARCHAR(255) NOT NULL
+);
+
+-- Ενδιάμεσος πίνακας (M to M)
+CREATE TABLE Medication_Substances (
+    medication_id INT NOT NULL,
+    substance_id INT NOT NULL,
+    PRIMARY KEY (medication_id, substance_id),
+    FOREIGN KEY (medication_id) REFERENCES Medications(id) ON DELETE CASCADE,
+    FOREIGN KEY (substance_id) REFERENCES Active_Substances(id) ON DELETE CASCADE
+);
+
+CREATE TABLE Patient_Allergies (
+    patient_id INT NOT NULL,
+    substance_id INT NOT NULL,
+    PRIMARY KEY (patient_id, substance_id),
+    FOREIGN KEY (patient_id) REFERENCES Patients(id) ON DELETE CASCADE,
+    FOREIGN KEY (substance_id) REFERENCES Active_Substances(id) ON DELETE CASCADE
 );
 
 CREATE TABLE Shifts (
@@ -202,7 +206,7 @@ CREATE TABLE Shifts (
     shift_date DATE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    shift_status VARCHAR(10) NOT NULL DEFAULT 'scheculed'
+    shift_status VARCHAR(10) NOT NULL DEFAULT 'scheduled',
     
     UNIQUE KEY department_shift_date (department_id, shift_date, shift_type),
     FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE RESTRICT,
@@ -218,7 +222,7 @@ CREATE TABLE Staff_Shifts (
     started_date DATE,
     PRIMARY KEY (staff_id, shift_id),
     FOREIGN KEY (staff_id) REFERENCES Staff(id),
-    FOREIGN KEY (shift_id) REFERENCES Shifts(id),
+    FOREIGN KEY (shift_id) REFERENCES Shifts(id)
 );
 
 CREATE TABLE Shift_Monthly_Limits (
@@ -228,7 +232,7 @@ CREATE TABLE Shift_Monthly_Limits (
     ml_month INT NOT NULL CHECK (ml_month BETWEEN 1 AND 12),
     ml_num INT DEFAULT 0,
     FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE CASCADE,
-    UNIQUE KEY staff_ml_month (staff_id, ml_year, ml_month),
+    UNIQUE KEY staff_ml_month (staff_id, ml_year, ml_month)
 );
 
 
@@ -246,7 +250,8 @@ CREATE TABLE Prescriptions (
     FOREIGN KEY (doctor_id) REFERENCES Doctors(staff_id),
     FOREIGN KEY (patient_amka) REFERENCES Patients(amka),
     FOREIGN KEY (medication_id) REFERENCES Medications(id),
-    FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id)
+    FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id),
+    UNIQUE KEY unique_prescription (doctor_id, patient_amka, medication_id, start_date)
 );
 
 CREATE TABLE Images (
@@ -265,6 +270,8 @@ CREATE TABLE LabExam (
     exam_type VARCHAR(50) NOT NULL,
     exam_date DATETIME NOT NULL,
     result TEXT,
+    result_value DECIMAL(10,3),   
+    result_unit VARCHAR(20),      
     cost DECIMAL(10,2) NOT NULL,
     doctor_id INT, 
     hospitalization_id INT NOT NULL,
@@ -280,6 +287,7 @@ CREATE TABLE Operating_Rooms (
 
 CREATE TABLE Medical_Acts (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(20) NOT NULL, 
     name VARCHAR(100) NOT NULL,
     category VARCHAR(30) NOT NULL,
     duration_minutes INT NOT NULL,
@@ -322,3 +330,61 @@ CREATE TABLE Doctor_Ratings (
     FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id) ON DELETE CASCADE,
     FOREIGN KEY (doctor_id) REFERENCES Doctors(staff_id) ON DELETE CASCADE
 );
+
+
+
+-- FUNCTIONS
+-- Fuction to detect cycles in supervising doctors
+DROP FUNCTION IF EXISTS has_cycle;
+
+CREATE FUNCTION has_cycle(new_doctor_id INT, supervisor_id INT)
+RETURNS BOOLEAN
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE current_id INT;
+    DECLARE depth INT DEFAULT 0;
+    SET current_id = supervisor_id;
+
+    WHILE current_id IS NOT NULL AND depth < 100 DO --change 100 later if needs modification i
+        IF current_id = new_doctor_id THEN
+            RETURN TRUE;
+        END IF;
+
+        SELECT d.supervisor_id INTO current_id
+        FROM Doctors d
+        WHERE d.staff_id = current_id;
+
+        SET depth = depth + 1;
+    END WHILE;
+
+    RETURN FALSE; --there isn't any cycle
+END;
+
+DROP TRIGGER IF EXISTS trg_doctor_insert_no_cycle;
+
+CREATE TRIGGER trg_doctor_insert_no_cycle
+BEFORE INSERT ON Doctors
+FOR EACH ROW
+BEGIN
+    IF NEW.supervisor_id IS NOT NULL THEN
+        IF has_cycle(NEW.staff_id, NEW.supervisor_id) THEN
+            SIGNAL SQLSTATE '45000' --45000 is generic error from user
+                SET MESSAGE_TEXT = 'Απαγορευμένη κυκλική αλυσίδα εποπτείας.';
+        END IF;
+    END IF;
+END;
+
+DROP TRIGGER IF EXISTS trg_doctor_update_no_cycle;
+
+CREATE TRIGGER trg_doctor_update_no_cycle
+BEFORE UPDATE ON Doctors
+FOR EACH ROW
+BEGIN
+    IF NEW.supervisor_id IS NOT NULL THEN
+        IF has_cycle(NEW.staff_id, NEW.supervisor_id) THEN
+            SIGNAL SQLSTATE '45000'
+                SET MESSAGE_TEXT = 'Απαγορευμένη κυκλική αλυσίδα εποπτείας.';
+        END IF;
+    END IF;
+END;
