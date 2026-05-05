@@ -264,10 +264,16 @@ CREATE TABLE Images (
     FOREIGN KEY (department_id) REFERENCES Departments(id) ON DELETE CASCADE
 );
 
+-- Προσθέτω πίνακα για τους κωδικούς των εξετάσεων
+CREATE TABLE LabExam_Ref (
+    code VARCHAR(20) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    type VARCHAR(50) NOT NULL
+);
+
 CREATE TABLE LabExam (
     id INT AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(20) NOT NULL,
-    exam_type VARCHAR(50) NOT NULL,
     exam_date DATETIME NOT NULL,
     result TEXT,
     result_value DECIMAL(10,3),   
@@ -275,6 +281,7 @@ CREATE TABLE LabExam (
     cost DECIMAL(10,2) NOT NULL,
     doctor_id INT, 
     hospitalization_id INT NOT NULL,
+    FOREIGN KEY (code) REFERENCES LabExam_Ref(code),
     FOREIGN KEY (doctor_id) REFERENCES Doctors(staff_id) ON DELETE SET NULL,
     FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id) ON DELETE CASCADE
 );
@@ -285,11 +292,18 @@ CREATE TABLE Operating_Rooms (
     room_type TEXT NOT NULL
 );
 
-CREATE TABLE Medical_Acts (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    code VARCHAR(20) NOT NULL, 
+-- Προσθέτω πίνακα για τους κωδικούς των επεμβάσεων
+CREATE TABLE MedicalAct_Ref (
+    code VARCHAR(20) PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     category VARCHAR(30) NOT NULL,
+    CONSTRAINT chk_act_ref_category
+    CHECK (category IN ('Χειρουργική', 'Διαγνωστική', 'Θεραπευτική'))
+);
+
+CREATE TABLE Medical_Acts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    act_code VARCHAR(20) NOT NULL, 
     duration_minutes INT NOT NULL,
     cost DECIMAL(10,2) NOT NULL,
     scheduled_time DATETIME NOT NULL,
@@ -299,8 +313,7 @@ CREATE TABLE Medical_Acts (
     FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id) ON DELETE CASCADE,
     FOREIGN KEY (room_id) REFERENCES Operating_Rooms(id),
     FOREIGN KEY (main_doctor_id) REFERENCES Doctors(staff_id),
-    
-    CONSTRAINT chk_med_act_category CHECK (category IN ('Χειρουργική', 'Διαγνωστική', 'Θεραπευτική'))
+    FOREIGN KEY (act_code) REFERENCES MedicalAct_Ref(code)
 );
 
 -- Πίνακας γέφυρα για βοηθούς  επέμβασης (M:N)
