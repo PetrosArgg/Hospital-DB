@@ -15,9 +15,11 @@ CREATE TABLE Staff (
     email VARCHAR(100) NOT NULL UNIQUE,
     phone VARCHAR(15),
     hire_date DATE NOT NULL,
+    staff_type VARCHAR(15) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    active BOOLEAN DEFAULT TRUE
+    active BOOLEAN DEFAULT TRUE,
+    CONSTRAINT chk_staff_type CHECK (staff_type IN ('doctor', 'nurse', 'admin'))
 );
 
 CREATE TABLE Patients (
@@ -59,7 +61,6 @@ CREATE TABLE Doctors (
         (rank = 'Διευθυντής' AND supervisor_id IS NULL) OR
         (rank NOT IN ('Ειδικευόμενος', 'Διευθυντής'))
     )
-    -- Check cyclic supervising
 );
 
 CREATE TABLE Departments (
@@ -408,3 +409,246 @@ BEGIN
         SET MESSAGE_TEXT = 'ΑΚΥΡΩΣΗ ΣΥΝΤΑΓΟΓΡΑΦΗΣΗΣ: Ο ασθενής είναι αλλεργικός σε κάποια δραστική ουσία αυτού του φαρμάκου.';
     END IF;
 END 
+
+DELIMITER $$
+
+DROP FUNCTION IF EXISTS check_min_staff_per_shift$$
+
+CREATE FUNCTION check_min_staff_per_shift(p_shift_id INT, p_new_staff_type VARCHAR(15))
+RETURNS BOOLEAN
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE v_num_doctors INT DEFAULT 0;
+    DECLARE v_num_nurses  INT DEFAULT 0;
+    DECLARE v_num_admins  INT DEFAULT 0;
+    DECLARE v_min_docs    INT;
+    DECLARE v_min_nurs    INT;
+    DECLARE v_min_adm     INT;
+
+    SELECT d.min_doctors, d.min_nurses, d.min_admins
+    INTO   v_min_docs, v_min_nurs, v_min_adm
+    FROM   Shifts s
+    JOIN   Departments d ON s.department_id = d.id
+    WHERE  s.id = p_shift_id;
+
+    SELECT
+        SUM(CASE WHEN st.staff_type = 'doctor' THEN 1 ELSE 0 END),
+        SUM(CASE WHEN st.staff_type = 'nurse'  THEN 1 ELSE 0 END),
+        SUM(CASE WHEN st.staff_type = 'admin'  THEN 1 ELSE 0 END)
+    INTO v_num_doctors, v_num_nurses, v_num_admins
+    FROM Staff_Shifts ss
+    JOIN Staff st ON ss.staff_id = st.id
+    WHERE ss.shift_id = p_shift_id;
+
+    CASE p_new_staff_type
+        WHEN 'doctor' THEN SET v_num_doctors = v_num_doctors + 1;
+        WHEN 'nurse'  THEN SET v_num_nurses  = v_num_nurses  + 1;
+        WHEN 'admin'  THEN SET v_num_admins  = v_num_admins  + 1;
+    END CASE;
+
+    RETURN (
+        v_num_doctors >= v_min_docs AND
+        v_num_nurses  >= v_min_nurs AND
+        v_num_admins  >= v_min_adm
+    );
+END$$
+
+DROP FUNCTION IF EXISTS check_resident_supervisor$$
+
+CREATE FUNCTION check_resident_supervisor(p_shift_id INT, p_new_staff_id INT)
+RETURNS BOOLEAN
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE v_has_resident   BOOLEAN DEFAULT FALSE;
+    DECLARE v_has_supervisor BOOLEAN DEFAULT FALSE;
+    DECLARE v_new_rank       VARCHAR(30) DEFAULT NULL;
+
+    SELECT d.rank INTO v_new_rank
+    FROM   Doctors d
+    WHERE  d.staff_id = p_new_staff_id;
+
+    SELECT EXISTS (
+        SELECT 1
+        FROM   Staff_Shifts ss
+        JOIN   Doctors d ON d.staff_id = ss.staff_id
+        WHERE  ss.shift_id = p_shift_id
+          AND  d.rank = 'Ειδικευόμενος'
+    ) INTO v_has_resident;
+
+    IF v_new_rank = 'Ειδικευόμενος' THEN
+        SET v_has_resident = TRUE;
+    END IF;
+
+    IF v_has_resident THEN
+        SELECT EXISTS (
+            SELECT 1
+            FROM   Staff_Shifts ss
+            JOIN   Doctors d ON d.staff_id = ss.staff_id
+            WHERE  ss.shift_id = p_shift_id
+              AND  d.rank IN ('Επιμελητής Α΄', 'Διευθυντής')
+        ) INTO v_has_supervisor;
+
+        IF v_new_rank IN ('Επιμελητής Α΄', 'Διευθυντής') THEN
+            SET v_has_supervisor = TRUE;
+        END IF;
+
+        RETURN v_has_supervisor;
+    END IF;
+
+    RETURN TRUE;
+END$$
+
+DROP FUNCTION IF EXISTS check_monthly_limit$$
+
+CREATE FUNCTION check_monthly_limit(p_staff_id INT, p_date DATE)
+RETURNS BOOLEAN
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE v_staff_type     VARCHAR(15);
+    DECLARE v_max_limit      INT;
+    DECLARE v_current_shifts INT DEFAULT 0;
+
+    SELECT staff_type INTO v_staff_type
+    FROM   Staff
+    WHERE  id = p_staff_id;
+
+    CASE v_staff_type
+        WHEN 'doctor' THEN SET v_max_limit = 15;
+        WHEN 'nurse'  THEN SET v_max_limit = 20;
+        WHEN 'admin'  THEN SET v_max_limit = 25;
+        ELSE               SET v_max_limit = 999;
+    END CASE;
+
+    SELECT COALESCE(ml_num, 0) INTO v_current_shifts
+    FROM   Shift_Monthly_Limits
+    WHERE  staff_id = p_staff_id
+      AND  ml_year  = YEAR(p_date)
+      AND  ml_month = MONTH(p_date);
+
+    RETURN v_current_shifts < v_max_limit;
+END$$
+
+DROP TRIGGER IF EXISTS trg_staff_shifts_before_insert$$
+
+CREATE TRIGGER trg_staff_shifts_before_insert
+BEFORE INSERT ON Staff_Shifts
+FOR EACH ROW
+BEGIN
+    DECLARE v_shift_date   DATE;
+    DECLARE v_shift_status VARCHAR(10);
+    DECLARE v_staff_type   VARCHAR(15);
+
+    SELECT shift_date, shift_status
+    INTO   v_shift_date, v_shift_status
+    FROM   Shifts
+    WHERE  id = NEW.shift_id;
+
+    SELECT staff_type INTO v_staff_type
+    FROM   Staff
+    WHERE  id = NEW.staff_id;
+
+    IF v_shift_status IN ('completed', 'cancelled') THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Δεν μπορείτε να προσθέσετε προσωπικό σε ολοκληρωμένη ή ακυρωμένη βάρδια.';
+    END IF;
+
+    IF check_monthly_limit(NEW.staff_id, v_shift_date) = FALSE THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Το προσωπικό έχει φτάσει το μηνιαίο όριο εφημεριών.';
+    END IF;
+
+    -- (μετράει +1 τον νέο)
+    IF check_min_staff_per_shift(NEW.shift_id, v_staff_type) = FALSE THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Η βάρδια δεν πληροί τον ελάχιστο αριθμό προσωπικού.';
+    END IF;
+
+    -- (μετράει +1 τον νέο)
+    IF check_resident_supervisor(NEW.shift_id, NEW.staff_id) = FALSE THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Παρουσία ειδικευόμενου χωρίς Επιμελητή Α΄ ή Διευθυντή στη βάρδια.';
+    END IF;
+END$$
+
+
+DROP TRIGGER IF EXISTS trg_update_monthly_limits$$
+
+CREATE TRIGGER trg_update_monthly_limits
+AFTER INSERT ON Staff_Shifts
+FOR EACH ROW
+BEGIN
+    DECLARE v_shift_date DATE;
+
+    SELECT shift_date INTO v_shift_date
+    FROM   Shifts
+    WHERE  id = NEW.shift_id;
+
+    INSERT INTO Shift_Monthly_Limits (staff_id, ml_year, ml_month, ml_num)
+    VALUES (NEW.staff_id, YEAR(v_shift_date), MONTH(v_shift_date), 1)
+    ON DUPLICATE KEY UPDATE ml_num = ml_num + 1;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS trg_check_staff_type_doctor_insert$$
+
+CREATE TRIGGER trg_check_staff_type_doctor_insert
+BEFORE INSERT ON Doctors
+FOR EACH ROW
+BEGIN
+    DECLARE v_type VARCHAR(15);
+
+    SELECT staff_type INTO v_type
+    FROM   Staff
+    WHERE  id = NEW.staff_id;
+
+    IF v_type != 'doctor' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Staff type mismatch: ο υπάλληλος δεν είναι doctor.';
+    END IF;
+END$$
+
+
+DROP TRIGGER IF EXISTS trg_check_staff_type_nurse_insert$$
+
+CREATE TRIGGER trg_check_staff_type_nurse_insert
+BEFORE INSERT ON Nurses
+FOR EACH ROW
+BEGIN
+    DECLARE v_type VARCHAR(15);
+
+    SELECT staff_type INTO v_type
+    FROM   Staff
+    WHERE  id = NEW.staff_id;
+
+    IF v_type != 'nurse' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Staff type mismatch: ο υπάλληλος δεν είναι nurse.';
+    END IF;
+END$$
+
+
+DROP TRIGGER IF EXISTS trg_check_staff_type_admin_insert$$
+
+CREATE TRIGGER trg_check_staff_type_admin_insert
+BEFORE INSERT ON Administrative_Staff
+FOR EACH ROW
+BEGIN
+    DECLARE v_type VARCHAR(15);
+
+    SELECT staff_type INTO v_type
+    FROM   Staff
+    WHERE  id = NEW.staff_id;
+
+    IF v_type != 'admin' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Staff type mismatch: ο υπάλληλος δεν είναι admin.';
+    END IF;
+END$$
+
+DELIMITER ;
