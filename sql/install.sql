@@ -345,6 +345,22 @@ CREATE TABLE Doctor_Ratings (
     FOREIGN KEY (doctor_id) REFERENCES Doctors(staff_id) ON DELETE CASCADE
 );
 
+CREATE INDEX idx_patients_name ON Patients (last_name, first_name);
+CREATE INDEX idx_staff_name ON Staff (last_name, first_name);
+
+CREATE INDEX idx_hospitalizations_entry ON Hospitalizations (entry_date);
+CREATE INDEX idx_hospitalizations_exit ON Hospitalizations (exit_date);
+
+CREATE INDEX idx_medical_acts_time ON Medical_Acts (scheduled_time);
+
+CREATE INDEX idx_prescriptions_dates ON Prescriptions (start_date, end_date);
+CREATE INDEX idx_labexam_date ON LabExam (exam_date);
+
+CREATE INDEX idx_beds_status ON Beds (status);
+
+CREATE INDEX idx_triage_arrival ON Triage_Entries (arrival_time);
+
+CREATE INDEX idx_shifts_date ON Shifts (shift_date);
 
 
 -- FUNCTIONS
