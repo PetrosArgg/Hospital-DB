@@ -2,7 +2,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 SET NAMES utf8mb4;
 
 -- Φόρτωση ICD-10
-LOAD DATA INFILE ""
+LOAD DATA INFILE ''
 INTO TABLE ICD10_Ref 
 CHARACTER SET utf8mb4 
 FIELDS TERMINATED BY ';' 
@@ -12,7 +12,7 @@ IGNORE 1 LINES
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- 2. Φόρτωση Κ.Ε.Ν.
+-- Φόρτωση Κ.Ε.Ν.
 LOAD DATA INFILE '' 
 INTO TABLE KEN_Ref 
 CHARACTER SET utf8mb4 
@@ -21,7 +21,7 @@ LINES TERMINATED BY '\r\n'
 IGNORE 1 LINES 
 (code, base_cost, mdn_days);
 
--- 3. Φόρτωση Δραστικών Ουσιών
+-- Φόρτωση Δραστικών Ουσιών
 LOAD DATA INFILE '' 
 INTO TABLE Active_Substances 
 CHARACTER SET utf8mb4 
@@ -30,7 +30,7 @@ LINES TERMINATED BY '\r\n'
 IGNORE 1 LINES 
 (substance_name);
 
--- 4. Φόρτωση Φαρμάκων
+-- Φόρτωση Φαρμάκων
 LOAD DATA INFILE '' 
 INTO TABLE Medications 
 CHARACTER SET utf8mb4 
