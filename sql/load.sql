@@ -1,0 +1,42 @@
+SET FOREIGN_KEY_CHECKS = 0;
+SET NAMES utf8mb4;
+
+-- Φόρτωση ICD-10
+LOAD DATA INFILE ''
+INTO TABLE ICD10_Ref 
+CHARACTER SET utf8mb4 
+FIELDS TERMINATED BY ';' 
+LINES TERMINATED BY '\r\n' 
+IGNORE 1 LINES 
+(code, description);
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- Φόρτωση Κ.Ε.Ν.
+LOAD DATA INFILE '' 
+INTO TABLE KEN_Ref 
+CHARACTER SET utf8mb4 
+FIELDS TERMINATED BY ';' 
+LINES TERMINATED BY '\r\n' 
+IGNORE 1 LINES 
+(code, base_cost, mdn_days);
+
+-- Φόρτωση Δραστικών Ουσιών
+LOAD DATA INFILE '' 
+INTO TABLE Active_Substances 
+CHARACTER SET utf8mb4 
+FIELDS TERMINATED BY ';' 
+LINES TERMINATED BY '\r\n' 
+IGNORE 1 LINES 
+(substance_name);
+
+-- Φόρτωση Φαρμάκων
+LOAD DATA INFILE '' 
+INTO TABLE Medications 
+CHARACTER SET utf8mb4 
+FIELDS TERMINATED BY ';' 
+LINES TERMINATED BY '\r\n' 
+IGNORE 1 LINES 
+(product_name);
+
+SET FOREIGN_KEY_CHECKS = 1;
