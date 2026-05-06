@@ -5,9 +5,8 @@ CREATE DATABASE hospitaldb;
 use hospitaldb;
 
 -- Tables Creation
-CREATE TABLE Staff (
-    -- Maybe it staff type will be needed for checking if shifts are valid
-    id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'The internal table id, primary key', 
+CREATE TABLE Staff (--checked
+    id INT AUTO_INCREMENT PRIMARY KEY, 
     amka CHAR(11) NOT NULL UNIQUE, 
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
@@ -22,7 +21,7 @@ CREATE TABLE Staff (
     CONSTRAINT chk_staff_type CHECK (staff_type IN ('doctor', 'nurse', 'admin'))
 );
 
-CREATE TABLE Patients (
+CREATE TABLE Patients (--checked
     id INT AUTO_INCREMENT PRIMARY KEY,
     amka CHAR(11) NOT NULL UNIQUE,
     first_name VARCHAR(50) NOT NULL,
@@ -30,29 +29,29 @@ CREATE TABLE Patients (
     father_name VARCHAR(50),
     birth_date DATE NOT NULL,
     gender VARCHAR(10) NOT NULL,
-    weight DECIMAL(5,2),
-    height DECIMAL(3,2),
+    weight DECIMAL(5,2) NOT NULL,
+    height DECIMAL(3,2) NOT NULL,
     address VARCHAR(255),
     phone VARCHAR(15),
     email VARCHAR(100),
     profession VARCHAR(100),
-    nationality VARCHAR(50),
-    insurance_provider VARCHAR(100),
+    nationality VARCHAR(50) NOT NULL,
+    insurance_provider VARCHAR(100) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT chk_gender CHECK (gender IN ('Male', 'Female', 'Other'))
 );
 
-CREATE TABLE Doctors (
+CREATE TABLE Doctors (--checked
     staff_id INT PRIMARY KEY,
     license_number VARCHAR(20) NOT NULL UNIQUE,    
-    specialty VARCHAR(50) NOT NULL,
+    specialty VARCHAR(50),
     rank VARCHAR(30) NOT NULL,    
     supervisor_id INT,
 
     FOREIGN KEY (staff_id) REFERENCES Staff(id) ON DELETE CASCADE,
-    FOREIGN KEY (supervisor_id) REFERENCES Doctors(staff_id),
+    FOREIGN KEY (supervisor_id) REFERENCES Doctors(staff_id) ON DELETE SET NULL,
 
     CONSTRAINT chk_doctor_rank CHECK (rank IN ('Ειδικευόμενος', 'Επιμελητής Β΄', 'Επιμελητής Α΄', 'Διευθυντής')),
     
@@ -63,7 +62,7 @@ CREATE TABLE Doctors (
     )
 );
 
-CREATE TABLE Departments (
+CREATE TABLE Departments (--checked
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE, 
     description TEXT, 
@@ -77,26 +76,26 @@ CREATE TABLE Departments (
     FOREIGN KEY (head_doctor_id) REFERENCES Doctors(staff_id) ON DELETE SET NULL
 );
 
-CREATE TABLE Nurses (
+CREATE TABLE Nurses (--checked
     staff_id INT PRIMARY KEY,
     rank VARCHAR(50) NOT NULL,
     department_id INT NOT NULL,
     FOREIGN KEY (staff_id) REFERENCES Staff(id) ON DELETE CASCADE,
-    FOREIGN KEY (department_id) REFERENCES Departments(id),
+    FOREIGN KEY (department_id) REFERENCES Departments(id) ON DELETE RESTRICT,
     
     CONSTRAINT chk_nurse_rank CHECK (rank IN ('Βοηθός Νοσηλευτή', 'Νοσηλευτής', 'Προϊστάμενος'))
 );
 
-CREATE TABLE Administrative_Staff (
+CREATE TABLE Administrative_Staff (--checked
     staff_id INT PRIMARY KEY,
     duty_role VARCHAR(100) NOT NULL,
     office_location VARCHAR(50),    
     department_id INT NOT NULL,    
     FOREIGN KEY (staff_id) REFERENCES Staff(id) ON DELETE CASCADE,
-    FOREIGN KEY (department_id) REFERENCES Departments(id)
+    FOREIGN KEY (department_id) REFERENCES Departments(id) ON DELETE RESTRICT
 );
 
-CREATE TABLE Doctor_Departments (
+CREATE TABLE Doctor_Departments (--checked
     doctor_id INT NOT NULL,
     department_id INT NOT NULL,
     
@@ -106,19 +105,19 @@ CREATE TABLE Doctor_Departments (
     FOREIGN KEY (department_id) REFERENCES Departments(id) ON DELETE CASCADE
 );
 
-CREATE TABLE Beds (
+CREATE TABLE Beds (--checked
     id INT AUTO_INCREMENT PRIMARY KEY,    
     bed_number VARCHAR(20) NOT NULL UNIQUE,
     bed_type VARCHAR(50) NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'Διαθέσιμη',
     department_id INT NOT NULL,
 
-    FOREIGN KEY (department_id) REFERENCES Departments(id) ON DELETE CASCADE,
+    FOREIGN KEY (department_id) REFERENCES Departments(id) ON DELETE RESTRICT,
     
     CONSTRAINT chk_bed_status CHECK (status IN ('Διαθέσιμη', 'Κατειλημμένη', 'Υπό συντήρηση'))
 );
 
-CREATE TABLE Emergency_Contacts (
+CREATE TABLE Emergency_Contacts (--checked
     id INT AUTO_INCREMENT PRIMARY KEY,
     patient_id INT NOT NULL,
     first_name VARCHAR(50) NOT NULL,
@@ -128,30 +127,29 @@ CREATE TABLE Emergency_Contacts (
     FOREIGN KEY (patient_id) REFERENCES Patients(id) ON DELETE CASCADE
 );
 
-CREATE TABLE KEN_Ref (
+CREATE TABLE KEN_Ref (--checked
     code VARCHAR(10) PRIMARY KEY,
     base_cost DECIMAL(10,2) NOT NULL,
     mdn_days INT NOT NULL
 );
 
-CREATE TABLE ICD10_Ref (
+CREATE TABLE ICD10_Ref (--checked
     code VARCHAR(10) PRIMARY KEY,
     description TEXT NOT NULL
 );
 
-CREATE TABLE Triage_Entries (
+CREATE TABLE Triage_Entries (--checked
     id INT AUTO_INCREMENT PRIMARY KEY,
     patient_id INT NOT NULL,
     arrival_time DATETIME NOT NULL,
     symptoms TEXT,
     urgency_level INT CHECK (urgency_level BETWEEN 1 AND 5),
     referral_status VARCHAR(50),
-    FOREIGN KEY (patient_id) REFERENCES Patients(id) ON DELETE CASCADE,
-    CONSTRAINT chk_referal CHECK (referral_status IN ('Exit', 'Hospitalization'))
-    
+    FOREIGN KEY (patient_id) REFERENCES Patients(id) ON DELETE RESTRICT,
+    CONSTRAINT chk_referal CHECK (referral_status IN ('Exit', 'Hospitalization'))  
 );
 
-CREATE TABLE Hospitalizations (
+CREATE TABLE Hospitalizations (--checked
     id INT AUTO_INCREMENT PRIMARY KEY,
     patient_id INT NOT NULL,
     bed_id INT NOT NULL,
@@ -164,43 +162,60 @@ CREATE TABLE Hospitalizations (
     total_cost DECIMAL(10,2),
     triage_id INT NOT NULL,
     
-    FOREIGN KEY (patient_id) REFERENCES Patients(id),
-    FOREIGN KEY (bed_id) REFERENCES Beds(id),
-    FOREIGN KEY (department_id) REFERENCES Departments(id),
-    FOREIGN KEY (icd10_entry_code) REFERENCES ICD10_Ref(code),
-    FOREIGN KEY (icd10_exit_code) REFERENCES ICD10_Ref(code),
-    FOREIGN KEY (ken_code) REFERENCES KEN_Ref(code),
-    FOREIGN KEY (triage_id) REFERENCES Triage_Entries(id)
+    FOREIGN KEY (patient_id) REFERENCES Patients(id) ON DELETE RESTRICT,
+    FOREIGN KEY (bed_id) REFERENCES Beds(id) ON DELETE RESTRICT,
+    FOREIGN KEY (department_id) REFERENCES Departments(id) ON DELETE RESTRICT,
+    FOREIGN KEY (icd10_entry_code) REFERENCES ICD10_Ref(code) ON DELETE RESTRICT,
+    FOREIGN KEY (icd10_exit_code) REFERENCES ICD10_Ref(code) ON DELETE RESTRICT,
+    FOREIGN KEY (ken_code) REFERENCES KEN_Ref(code) ON DELETE RESTRICT,
+    FOREIGN KEY (triage_id) REFERENCES Triage_Entries(id) ON DELETE RESTRICT
 );
 
-CREATE TABLE Active_Substances (
+CREATE TABLE Active_Substances (--checked
     id INT AUTO_INCREMENT PRIMARY KEY,
     substance_name VARCHAR(255) NOT NULL UNIQUE
 );
 
-CREATE TABLE Medications (
+CREATE TABLE Medications (--checked
     id INT AUTO_INCREMENT PRIMARY KEY,
     product_name VARCHAR(255) NOT NULL
 );
 
 -- Ενδιάμεσος πίνακας (M to M)
-CREATE TABLE Medication_Substances (
+CREATE TABLE Medication_Substances (--checked
     medication_id INT NOT NULL,
     substance_id INT NOT NULL,
     PRIMARY KEY (medication_id, substance_id),
     FOREIGN KEY (medication_id) REFERENCES Medications(id) ON DELETE CASCADE,
-    FOREIGN KEY (substance_id) REFERENCES Active_Substances(id) ON DELETE CASCADE
+    FOREIGN KEY (substance_id) REFERENCES Active_Substances(id) ON DELETE RESTRICT
 );
 
-CREATE TABLE Patient_Allergies (
+CREATE TABLE Patient_Allergies (--checked
     patient_id INT NOT NULL,
     substance_id INT NOT NULL,
     PRIMARY KEY (patient_id, substance_id),
     FOREIGN KEY (patient_id) REFERENCES Patients(id) ON DELETE CASCADE,
-    FOREIGN KEY (substance_id) REFERENCES Active_Substances(id) ON DELETE CASCADE
+    FOREIGN KEY (substance_id) REFERENCES Active_Substances(id) ON DELETE RESTRICT
 );
 
-CREATE TABLE Shifts (
+CREATE TABLE Prescriptions (--checked
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    doctor_id INT NOT NULL,
+    patient_id INT NOT NULL,
+    medication_id INT NOT NULL,
+    hospitalization_id INT NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE,
+    dosage VARCHAR(50),
+    frequency VARCHAR(50),
+    FOREIGN KEY (doctor_id) REFERENCES Doctors(staff_id) ON DELETE RESTRICT,
+    FOREIGN KEY (patient_id) REFERENCES Patients(id) ON DELETE RESTRICT,
+    FOREIGN KEY (medication_id) REFERENCES Medications(id) ON DELETE RESTRICT,
+    FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id) ON DELETE RESTRICT,
+    UNIQUE KEY unique_prescription (doctor_id, patient_id, medication_id, start_date)
+);
+
+CREATE TABLE Shifts (--checked
     id INT AUTO_INCREMENT PRIMARY KEY,
     department_id INT NOT NULL,
     shift_type VARCHAR(9) NOT NULL,
@@ -210,91 +225,62 @@ CREATE TABLE Shifts (
     shift_status VARCHAR(10) NOT NULL DEFAULT 'scheduled',
     
     UNIQUE KEY department_shift_date (department_id, shift_date, shift_type),
-    FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE RESTRICT,
+    FOREIGN KEY (department_id) REFERENCES Departments(id) ON DELETE RESTRICT,
     CONSTRAINT chk_shifttype CHECK (shift_type IN ('Morning', 'Afternoon', 'Night')),
     CONSTRAINT chk_shiftstatus CHECK (shift_status IN ('scheduled', 'ongoing', 'completed', 'cancelled'))
 );
 
-CREATE TABLE Staff_Shifts (
+CREATE TABLE Staff_Shifts (--checked
     staff_id INT NOT NULL,
     shift_id INT NOT NULL,
     start_time TIME,
     end_time TIME,
     started_date DATE,
     PRIMARY KEY (staff_id, shift_id),
-    FOREIGN KEY (staff_id) REFERENCES Staff(id),
-    FOREIGN KEY (shift_id) REFERENCES Shifts(id)
+    FOREIGN KEY (staff_id) REFERENCES Staff(id) ON DELETE CASCADE,
+    FOREIGN KEY (shift_id) REFERENCES Shifts(id) ON DELETE CASCADE
 );
 
-CREATE TABLE Shift_Monthly_Limits (
+CREATE TABLE Shift_Monthly_Limits (--checked
     id INT PRIMARY KEY AUTO_INCREMENT,
     staff_id INT NOT NULL,
     ml_year INT NOT NULL,
     ml_month INT NOT NULL CHECK (ml_month BETWEEN 1 AND 12),
     ml_num INT DEFAULT 0,
-    FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE CASCADE,
+    FOREIGN KEY (staff_id) REFERENCES Staff(id) ON DELETE CASCADE,
     UNIQUE KEY staff_ml_month (staff_id, ml_year, ml_month)
 );
 
 
-
-CREATE TABLE Prescriptions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    doctor_id INT NOT NULL,
-    patient_amka CHAR(11) NOT NULL,
-    medication_id INT NOT NULL,
-    hospitalization_id INT NOT NULL,
-    start_date DATE NOT NULL,
-    end_date DATE,
-    dosage VARCHAR(50),
-    frequency VARCHAR(50),
-    FOREIGN KEY (doctor_id) REFERENCES Doctors(staff_id),
-    FOREIGN KEY (patient_amka) REFERENCES Patients(amka),
-    FOREIGN KEY (medication_id) REFERENCES Medications(id),
-    FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id),
-    UNIQUE KEY unique_prescription (doctor_id, patient_amka, medication_id, start_date)
-);
-
-CREATE TABLE Images (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    image_url VARCHAR(255) NOT NULL,
-    description TEXT,
-    doctor_id INT,
-    department_id INT,
-    FOREIGN KEY (doctor_id) REFERENCES Doctors(staff_id) ON DELETE CASCADE,
-    FOREIGN KEY (department_id) REFERENCES Departments(id) ON DELETE CASCADE
-);
-
--- Προσθέτω πίνακα για τους κωδικούς των εξετάσεων
-CREATE TABLE LabExam_Ref (
+CREATE TABLE LabExam_Ref (--checked
     code VARCHAR(20) PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     type VARCHAR(50) NOT NULL
 );
 
-CREATE TABLE LabExam (
+CREATE TABLE LabExam (--checked but pending talk
     id INT AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(20) NOT NULL,
     exam_date DATETIME NOT NULL,
     result TEXT,
     result_value DECIMAL(10,3),   
     result_unit VARCHAR(20),      
-    cost DECIMAL(10,2) NOT NULL,
+    cost DECIMAL(10,2) NOT NULL, --maybe na mpei sto LabExam_Ref
     doctor_id INT, 
     hospitalization_id INT NOT NULL,
-    FOREIGN KEY (code) REFERENCES LabExam_Ref(code),
-    FOREIGN KEY (doctor_id) REFERENCES Doctors(staff_id) ON DELETE SET NULL,
-    FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id) ON DELETE CASCADE
+    FOREIGN KEY (code) REFERENCES LabExam_Ref(code) ON DELETE RESTRICT,
+    FOREIGN KEY (doctor_id) REFERENCES Doctors(staff_id) ON DELETE SET NULL, --or restrict???
+    FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id) ON DELETE RESTRICT
 );
 
-CREATE TABLE Operating_Rooms (
+CREATE TABLE Operating_Rooms (--checked
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
     room_type TEXT NOT NULL
 );
 
 -- Προσθέτω πίνακα για τους κωδικούς των επεμβάσεων
-CREATE TABLE MedicalAct_Ref (
+CREATE TABLE MedicalAct_Ref (--checked
     code VARCHAR(20) PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     category VARCHAR(30) NOT NULL,
@@ -302,19 +288,19 @@ CREATE TABLE MedicalAct_Ref (
     CHECK (category IN ('Χειρουργική', 'Διαγνωστική', 'Θεραπευτική'))
 );
 
-CREATE TABLE Medical_Acts (
+CREATE TABLE Medical_Acts (--checked but pending talk
     id INT AUTO_INCREMENT PRIMARY KEY,
     act_code VARCHAR(20) NOT NULL, 
     duration_minutes INT NOT NULL,
-    cost DECIMAL(10,2) NOT NULL,
+    cost DECIMAL(10,2) NOT NULL, --maybe na mpei sto REF
     scheduled_time DATETIME NOT NULL,
     hospitalization_id INT NOT NULL,
     room_id INT NOT NULL,
     main_doctor_id INT NOT NULL,
-    FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id) ON DELETE CASCADE,
-    FOREIGN KEY (room_id) REFERENCES Operating_Rooms(id),
-    FOREIGN KEY (main_doctor_id) REFERENCES Doctors(staff_id),
-    FOREIGN KEY (act_code) REFERENCES MedicalAct_Ref(code)
+    FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id) ON DELETE RESTRICT,
+    FOREIGN KEY (room_id) REFERENCES Operating_Rooms(id) ON DELETE RESTRICT,
+    FOREIGN KEY (main_doctor_id) REFERENCES Doctors(staff_id) ON DELETE RESTRICT,
+    FOREIGN KEY (act_code) REFERENCES MedicalAct_Ref(code) ON DELETE RESTRICT
 );
 
 -- Πίνακας γέφυρα για βοηθούς  επέμβασης (M:N)
@@ -328,12 +314,12 @@ CREATE TABLE Medical_Act_Assistants (
 
 CREATE TABLE Hospitalization_Ratings (
     hospitalization_id INT PRIMARY KEY,
-    medical_care_quality INT CHECK (medical_care_quality BETWEEN 1 AND 5),
+    medical_care_quality TINYINT CHECK (medical_care_quality BETWEEN 1 AND 5),
     nursing_care_quality TINYINT CHECK (nursing_care_quality BETWEEN 1 AND 5),
     cleanliness TINYINT CHECK (cleanliness BETWEEN 1 AND 5),
     food_quality TINYINT CHECK (food_quality BETWEEN 1 AND 5),
     overall_experience TINYINT CHECK (overall_experience BETWEEN 1 AND 5),
-    FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id) ON DELETE CASCADE
+    FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id) ON DELETE RESTRICT
 );
 
 CREATE TABLE Doctor_Ratings (
@@ -341,8 +327,36 @@ CREATE TABLE Doctor_Ratings (
     doctor_id INT,
     medical_care_quality TINYINT CHECK (medical_care_quality BETWEEN 1 AND 5),
     PRIMARY KEY (hospitalization_id, doctor_id),
-    FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id) ON DELETE CASCADE,
-    FOREIGN KEY (doctor_id) REFERENCES Doctors(staff_id) ON DELETE CASCADE
+    FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id) ON DELETE RESTRICT, --OR CASCADE???
+    FOREIGN KEY (doctor_id) REFERENCES Doctors(staff_id) ON DELETE RESTRICT
+);
+
+CREATE TABLE Images (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    image_url VARCHAR(255) NOT NULL,
+    description TEXT,
+    doctor_id INT,
+    nurse_id INT,
+    admin_id INT,
+    department_id INT,
+    patient_id INT,
+    room_id INT,
+
+    FOREIGN KEY (doctor_id) REFERENCES Doctors(staff_id) ON DELETE CASCADE,
+    FOREIGN KEY (nurse_id) REFERENCES Nurses(staff_id) ON DELETE CASCADE,
+    FOREIGN KEY (admin_id) REFERENCES Administrative_Staff(staff_id) ON DELETE CASCADE,
+    FOREIGN KEY (department_id) REFERENCES Departments(id) ON DELETE CASCADE,
+    FOREIGN KEY (patient_id) REFERENCES Patients(id) ON DELETE CASCADE,
+    FOREIGN KEY (room_id) REFERENCES Operating_Rooms(id) ON DELETE CASCADE,
+
+    CONSTRAINT chk_image_entity CHECK (
+        (doctor_id IS NOT NULL) +
+        (nurse_id IS NOT NULL) +
+        (admin_id IS NOT NULL) +
+        (department_id IS NOT NULL) +
+        (patient_id IS NOT NULL) +
+        (room_id IS NOT NULL) = 1
+    )
 );
 
 CREATE INDEX idx_patients_name ON Patients (last_name, first_name);
@@ -364,8 +378,9 @@ CREATE INDEX idx_shifts_date ON Shifts (shift_date);
 
 
 -- FUNCTIONS
--- Fuction to detect cycles in supervising doctors
 DROP FUNCTION IF EXISTS has_cycle;
+
+DELIMITER $$
 
 CREATE FUNCTION has_cycle(new_doctor_id INT, supervisor_id INT)
 RETURNS BOOLEAN
@@ -376,7 +391,7 @@ BEGIN
     DECLARE depth INT DEFAULT 0;
     SET current_id = supervisor_id;
 
-    WHILE current_id IS NOT NULL AND depth < 100 DO --change 100 later if needs modification i
+    WHILE current_id IS NOT NULL AND depth < 100 DO --100 is too much but ok
         IF current_id = new_doctor_id THEN
             RETURN TRUE;
         END IF;
@@ -388,25 +403,42 @@ BEGIN
         SET depth = depth + 1;
     END WHILE;
 
-    RETURN FALSE; -- there isn't any cycle
-END;
+    RETURN FALSE;
+END$$
+DELIMITER ; 
+
+DROP TRIGGER IF EXISTS trg_supervisor_deleted;
+DELIMITER $$
+CREATE TRIGGER trg_supervisor_deleted
+BEFORE UPDATE ON Doctors
+FOR EACH ROW
+BEGIN
+    IF OLD.supervisor_id IS NOT NULL 
+       AND NEW.supervisor_id IS NULL
+       AND NEW.rank = 'Ειδικευόμενος' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Ειδικευόμενος δεν μπορεί να μείνει χωρίς supervisor. Αναθέστε νέο supervisor πρώτα.';
+    END IF;
+END$$
+DELIMITER ; 
 
 DROP TRIGGER IF EXISTS trg_doctor_insert_no_cycle;
-
+DELIMITER $$
 CREATE TRIGGER trg_doctor_insert_no_cycle
 BEFORE INSERT ON Doctors
 FOR EACH ROW
 BEGIN
     IF NEW.supervisor_id IS NOT NULL THEN
         IF has_cycle(NEW.staff_id, NEW.supervisor_id) THEN
-            SIGNAL SQLSTATE '45000' --45000 is generic error from user
+            SIGNAL SQLSTATE '45000'
                 SET MESSAGE_TEXT = 'Απαγορευμένη κυκλική αλυσίδα εποπτείας.';
         END IF;
     END IF;
-END;
+END$$
+DELIMITER ; 
 
 DROP TRIGGER IF EXISTS trg_doctor_update_no_cycle;
-
+DELIMITER $$
 CREATE TRIGGER trg_doctor_update_no_cycle
 BEFORE UPDATE ON Doctors
 FOR EACH ROW
@@ -417,10 +449,11 @@ BEGIN
                 SET MESSAGE_TEXT = 'Απαγορευμένη κυκλική αλυσίδα εποπτείας.';
         END IF;
     END IF;
-END;
-    
-    DROP TRIGGER IF EXISTS trg_check_allergy_before_prescription //
+END$$
+DELIMITER ;
 
+DROP TRIGGER IF EXISTS trg_check_allergy_before_prescription ;
+DELIMITER $$
 CREATE TRIGGER trg_check_allergy_before_prescription
 BEFORE INSERT ON Prescriptions
 FOR EACH ROW
@@ -430,16 +463,14 @@ BEGIN
     SELECT COUNT(*) INTO allergy_count
     FROM Patient_Allergies pa
     JOIN Medication_Substances ms ON pa.substance_id = ms.substance_id
-    WHERE pa.patient_amka = NEW.patient_amka
+    WHERE pa.patient_id = NEW.patient_id
       AND ms.medication_id = NEW.medication_id;
 
     IF allergy_count > 0 THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'ΑΚΥΡΩΣΗ ΣΥΝΤΑΓΟΓΡΑΦΗΣΗΣ: Ο ασθενής είναι αλλεργικός σε κάποια δραστική ουσία αυτού του φαρμάκου.';
     END IF;
-END 
-
-DELIMITER $$
+END$$ 
 
 DROP FUNCTION IF EXISTS check_min_staff_per_shift$$
 
@@ -560,6 +591,162 @@ BEGIN
     RETURN v_current_shifts < v_max_limit;
 END$$
 
+DELIMITER $$
+
+DROP FUNCTION IF EXISTS check_consecutive_nights$$
+
+CREATE FUNCTION check_consecutive_nights(p_staff_id INT, p_shift_id INT)
+RETURNS BOOLEAN
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE v_shift_date    DATE;
+    DECLARE v_shift_type    VARCHAR(9);
+    DECLARE v_check_date    DATE;
+    DECLARE v_count_prev    INT DEFAULT 0;
+    DECLARE v_count_next    INT DEFAULT 0;
+    DECLARE v_found         BOOLEAN;
+
+    SELECT shift_date, shift_type
+    INTO   v_shift_date, v_shift_type
+    FROM   Shifts
+    WHERE  id = p_shift_id;
+
+    IF v_shift_type != 'Night' THEN
+        RETURN TRUE;
+    END IF;
+
+    SET v_check_date = DATE_SUB(v_shift_date, INTERVAL 1 DAY);
+    SET v_found = TRUE;
+
+    WHILE v_found DO
+        SELECT EXISTS (
+            SELECT 1
+            FROM   Staff_Shifts ss
+            JOIN   Shifts s ON ss.shift_id = s.id
+            WHERE  ss.staff_id  = p_staff_id
+              AND  s.shift_date = v_check_date
+              AND  s.shift_type = 'Night'
+        ) INTO v_found;
+
+        IF v_found THEN
+            SET v_count_prev = v_count_prev + 1;
+            SET v_check_date = DATE_SUB(v_check_date, INTERVAL 1 DAY);
+        END IF;
+    END WHILE;
+
+    SET v_check_date = DATE_ADD(v_shift_date, INTERVAL 1 DAY);
+    SET v_found = TRUE;
+
+    WHILE v_found DO
+        SELECT EXISTS (
+            SELECT 1
+            FROM   Staff_Shifts ss
+            JOIN   Shifts s ON ss.shift_id = s.id
+            WHERE  ss.staff_id  = p_staff_id
+              AND  s.shift_date = v_check_date
+              AND  s.shift_type = 'Night'
+        ) INTO v_found;
+
+        IF v_found THEN
+            SET v_count_next = v_count_next + 1;
+            SET v_check_date = DATE_ADD(v_check_date, INTERVAL 1 DAY);
+        END IF;
+    END WHILE;
+
+    IF (v_count_prev + 1 + v_count_next) > 3 THEN
+        RETURN FALSE;
+    END IF;
+
+    RETURN TRUE;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DROP FUNCTION IF EXISTS get_shift_start$$
+
+CREATE FUNCTION get_shift_start(p_shift_date DATE, p_shift_type VARCHAR(9))
+RETURNS DATETIME
+DETERMINISTIC
+BEGIN
+    RETURN CASE p_shift_type
+        WHEN 'Morning'   THEN TIMESTAMP(p_shift_date, '07:00:00')
+        WHEN 'Afternoon' THEN TIMESTAMP(p_shift_date, '15:00:00')
+        WHEN 'Night'     THEN TIMESTAMP(p_shift_date, '23:00:00')
+    END;
+END$$
+
+DROP FUNCTION IF EXISTS get_shift_end$$
+
+CREATE FUNCTION get_shift_end(p_shift_date DATE, p_shift_type VARCHAR(9))
+RETURNS DATETIME
+DETERMINISTIC
+BEGIN
+    RETURN CASE p_shift_type
+        WHEN 'Morning'   THEN TIMESTAMP(p_shift_date, '15:00:00')
+        WHEN 'Afternoon' THEN TIMESTAMP(p_shift_date, '23:00:00')
+        WHEN 'Night'     THEN TIMESTAMP(DATE_ADD(p_shift_date, INTERVAL 1 DAY), '07:00:00')
+    END;
+END$$
+
+
+DROP FUNCTION IF EXISTS check_rest_period$$
+
+CREATE FUNCTION check_rest_period(p_staff_id INT, p_shift_id INT)
+RETURNS BOOLEAN
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE v_new_start     DATETIME;
+    DECLARE v_new_end       DATETIME;
+    DECLARE v_prev_end      DATETIME;
+    DECLARE v_next_start    DATETIME;
+    DECLARE v_shift_date    DATE;
+    DECLARE v_shift_type    VARCHAR(9);
+
+    SELECT s.shift_date, s.shift_type
+    INTO   v_shift_date, v_shift_type
+    FROM   Shifts s
+    WHERE  s.id = p_shift_id;
+
+    SET v_new_start = get_shift_start(v_shift_date, v_shift_type);
+    SET v_new_end = get_shift_end(v_shift_date, v_shift_type);
+
+    SELECT get_shift_end(s.shift_date, s.shift_type)
+    INTO   v_prev_end
+    FROM   Staff_Shifts ss
+    JOIN   Shifts s ON ss.shift_id = s.id
+    WHERE  ss.staff_id = p_staff_id
+      AND  get_shift_end(s.shift_date, s.shift_type) <= v_new_start
+    ORDER BY get_shift_end(s.shift_date, s.shift_type) DESC
+    LIMIT 1;
+
+    SELECT get_shift_start(s.shift_date, s.shift_type)
+    INTO   v_next_start
+    FROM   Staff_Shifts ss
+    JOIN   Shifts s ON ss.shift_id = s.id
+    WHERE  ss.staff_id = p_staff_id
+      AND  get_shift_start(s.shift_date, s.shift_type) >= v_new_end
+    ORDER BY get_shift_start(s.shift_date, s.shift_type) ASC
+    LIMIT 1;
+
+    IF v_prev_end IS NOT NULL THEN
+        IF TIMESTAMPDIFF(HOUR, v_prev_end, v_new_start) < 8 THEN
+            RETURN FALSE;
+        END IF;
+    END IF;
+
+    IF v_next_start IS NOT NULL THEN
+        IF TIMESTAMPDIFF(HOUR, v_new_end, v_next_start) < 8 THEN
+            RETURN FALSE;
+        END IF;
+    END IF;
+
+    RETURN TRUE;
+END$$
+
 DROP TRIGGER IF EXISTS trg_staff_shifts_before_insert$$
 
 CREATE TRIGGER trg_staff_shifts_before_insert
@@ -589,17 +776,27 @@ BEGIN
         SET MESSAGE_TEXT = 'Το προσωπικό έχει φτάσει το μηνιαίο όριο εφημεριών.';
     END IF;
 
-    -- (μετράει +1 τον νέο)
     IF check_min_staff_per_shift(NEW.shift_id, v_staff_type) = FALSE THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Η βάρδια δεν πληροί τον ελάχιστο αριθμό προσωπικού.';
     END IF;
 
-    -- (μετράει +1 τον νέο)
     IF check_resident_supervisor(NEW.shift_id, NEW.staff_id) = FALSE THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Παρουσία ειδικευόμενου χωρίς Επιμελητή Α΄ ή Διευθυντή στη βάρδια.';
     END IF;
+
+    IF check_rest_period(NEW.staff_id, NEW.shift_id) = FALSE THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Δεν έχει παρέλθει το ελάχιστο διάστημα ανάπαυσης 8 ωρών μεταξύ βαρδιών.';
+    END IF;
+
+    IF check_consecutive_nights(NEW.staff_id, NEW.shift_id) = FALSE THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Υπέρβαση ορίου 3 συνεχόμενων νυχτερινών βαρδιών.';
+    END IF;
+
+
 END$$
 
 
@@ -677,6 +874,245 @@ BEGIN
     IF v_type != 'admin' THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Staff type mismatch: ο υπάλληλος δεν είναι admin.';
+    END IF;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS trg_check_bed_availability$$
+
+CREATE TRIGGER trg_check_bed_availability
+BEFORE INSERT ON Hospitalizations
+FOR EACH ROW
+BEGIN
+    DECLARE v_occupied INT;
+
+    SELECT COUNT(*) INTO v_occupied
+    FROM   Hospitalizations
+    WHERE  bed_id    = NEW.bed_id
+      AND  exit_date IS NULL;
+
+    IF v_occupied > 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Η κλίνη είναι ήδη κατειλημμένη.';
+    END IF;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS trg_bed_status_on_admission$$
+
+CREATE TRIGGER trg_bed_status_on_admission
+AFTER INSERT ON Hospitalizations
+FOR EACH ROW
+BEGIN
+    UPDATE Beds SET status = 'Κατειλημμένη'
+    WHERE id = NEW.bed_id;
+END$$
+
+
+DROP TRIGGER IF EXISTS trg_bed_status_on_discharge$$
+
+CREATE TRIGGER trg_bed_status_on_discharge
+AFTER UPDATE ON Hospitalizations
+FOR EACH ROW
+BEGIN
+    IF OLD.exit_date IS NULL AND NEW.exit_date IS NOT NULL THEN
+        UPDATE Beds SET status = 'Διαθέσιμη'
+        WHERE id = NEW.bed_id;
+    END IF;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS trg_check_rating_on_completed_hospitalization$$
+
+CREATE TRIGGER trg_check_rating_on_completed_hospitalization
+BEFORE INSERT ON Hospitalization_Ratings
+FOR EACH ROW
+BEGIN
+    DECLARE v_exit_date DATETIME;
+
+    SELECT exit_date INTO v_exit_date
+    FROM   Hospitalizations
+    WHERE  id = NEW.hospitalization_id;
+
+    IF v_exit_date IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Αξιολόγηση επιτρέπεται μόνο για ολοκληρωμένες νοσηλείες.';
+    END IF;
+END$$
+
+
+DROP TRIGGER IF EXISTS trg_check_doctor_rating_on_completed_hospitalization$$
+
+CREATE TRIGGER trg_check_doctor_rating_on_completed_hospitalization
+BEFORE INSERT ON Doctor_Ratings
+FOR EACH ROW
+BEGIN
+    DECLARE v_exit_date DATETIME;
+
+    SELECT exit_date INTO v_exit_date
+    FROM   Hospitalizations
+    WHERE  id = NEW.hospitalization_id;
+
+    IF v_exit_date IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Αξιολόγηση ιατρού επιτρέπεται μόνο για ολοκληρωμένες νοσηλείες.';
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- DELIMITER $$
+
+-- DROP EVENT IF EXISTS evt_check_daily_coverage$$
+
+-- CREATE EVENT evt_check_daily_coverage
+-- ON SCHEDULE EVERY 1 DAY
+-- STARTS CURRENT_DATE + INTERVAL 1 DAY
+-- DO
+-- BEGIN
+--     -- Εισάγει αυτόματα τις βάρδιες που λείπουν για κάθε τμήμα
+--     INSERT IGNORE INTO Shifts (department_id, shift_type, shift_date, shift_status)
+--     SELECT d.id, t.shift_type, CURRENT_DATE, 'scheduled'
+--     FROM   Departments d
+--     CROSS JOIN (
+--         SELECT 'Morning'   AS shift_type UNION ALL
+--         SELECT 'Afternoon' UNION ALL
+--         SELECT 'Night'
+--     ) t
+--     WHERE NOT EXISTS (
+--         SELECT 1 FROM Shifts s
+--         WHERE  s.department_id = d.id
+--           AND  s.shift_date    = CURRENT_DATE
+--           AND  s.shift_type    = t.shift_type
+--     );
+-- END$$
+
+-- DELIMITER ;
+
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS trg_check_medical_act_conflicts$$
+
+CREATE TRIGGER trg_check_medical_act_conflicts
+BEFORE INSERT ON Medical_Acts
+FOR EACH ROW
+BEGIN
+    DECLARE v_end_time      DATETIME;
+    DECLARE v_room_conflict INT;
+    DECLARE v_doctor_conflict INT;
+
+    SET v_end_time = DATE_ADD(NEW.scheduled_time, INTERVAL NEW.duration_minutes MINUTE);
+
+    SELECT COUNT(*) INTO v_room_conflict
+    FROM   Medical_Acts
+    WHERE  room_id = NEW.room_id
+      AND  (
+            -- Η νέα αρχίζει μέσα σε υπάρχουσα
+            (NEW.scheduled_time >= scheduled_time 
+             AND NEW.scheduled_time < DATE_ADD(scheduled_time, INTERVAL duration_minutes MINUTE))
+            OR
+            -- Η νέα τελειώνει μέσα σε υπάρχουσα
+            (v_end_time > scheduled_time 
+             AND v_end_time <= DATE_ADD(scheduled_time, INTERVAL duration_minutes MINUTE))
+            OR
+            -- Η νέα περιέχει εξολοκλήρου μια υπάρχουσα
+            (NEW.scheduled_time <= scheduled_time 
+             AND v_end_time >= DATE_ADD(scheduled_time, INTERVAL duration_minutes MINUTE))
+           );
+
+    IF v_room_conflict > 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Ο χώρος επέμβασης είναι ήδη κατειλημμένος αυτή την ώρα.';
+    END IF;
+
+    SELECT COUNT(*) INTO v_doctor_conflict
+    FROM   Medical_Acts
+    WHERE  main_doctor_id = NEW.main_doctor_id
+      AND  (
+            (NEW.scheduled_time >= scheduled_time 
+             AND NEW.scheduled_time < DATE_ADD(scheduled_time, INTERVAL duration_minutes MINUTE))
+            OR
+            (v_end_time > scheduled_time 
+             AND v_end_time <= DATE_ADD(scheduled_time, INTERVAL duration_minutes MINUTE))
+            OR
+            (NEW.scheduled_time <= scheduled_time 
+             AND v_end_time >= DATE_ADD(scheduled_time, INTERVAL duration_minutes MINUTE))
+           );
+
+    IF v_doctor_conflict > 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Ο κύριος ιατρός συμμετέχει ήδη σε άλλη επέμβαση αυτή την ώρα.';
+    END IF;
+END$$
+
+DROP TRIGGER IF EXISTS trg_check_assistant_conflict$$
+
+CREATE TRIGGER trg_check_assistant_conflict
+BEFORE INSERT ON Medical_Act_Assistants
+FOR EACH ROW
+BEGIN
+    DECLARE v_new_start     DATETIME;
+    DECLARE v_new_end       DATETIME;
+    DECLARE v_conflict      INT;
+
+    -- Στοιχεία της επέμβασης που προστίθεται ο βοηθός
+    SELECT scheduled_time, 
+           DATE_ADD(scheduled_time, INTERVAL duration_minutes MINUTE)
+    INTO   v_new_start, v_new_end
+    FROM   Medical_Acts
+    WHERE  id = NEW.act_id;
+
+    -- Ο βοηθός συμμετέχει ήδη σε άλλη επέμβαση την ίδια ώρα;
+    SELECT COUNT(*) INTO v_conflict
+    FROM   Medical_Act_Assistants maa
+    JOIN   Medical_Acts ma ON maa.act_id = ma.id
+    WHERE  maa.staff_id = NEW.staff_id
+      AND  (
+            (v_new_start >= ma.scheduled_time 
+             AND v_new_start < DATE_ADD(ma.scheduled_time, INTERVAL ma.duration_minutes MINUTE))
+            OR
+            (v_new_end > ma.scheduled_time 
+             AND v_new_end <= DATE_ADD(ma.scheduled_time, INTERVAL ma.duration_minutes MINUTE))
+            OR
+            (v_new_start <= ma.scheduled_time 
+             AND v_new_end >= DATE_ADD(ma.scheduled_time, INTERVAL ma.duration_minutes MINUTE))
+           );
+
+    IF v_conflict > 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Ο βοηθός συμμετέχει ήδη σε άλλη επέμβαση αυτή την ώρα.';
+    END IF;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS trg_check_doctor_rating_prescribed$$
+
+CREATE TRIGGER trg_check_doctor_rating_prescribed
+BEFORE INSERT ON Doctor_Ratings
+FOR EACH ROW
+BEGIN
+    DECLARE v_prescribed INT;
+
+    SELECT COUNT(*) INTO v_prescribed
+    FROM   Prescriptions
+    WHERE  hospitalization_id = NEW.hospitalization_id
+      AND  doctor_id          = NEW.doctor_id;
+
+    IF v_prescribed = 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Μπορείτε να αξιολογήσετε μόνο ιατρούς που συνταγογράφησαν κατά τη νοσηλεία σας.';
     END IF;
 END$$
 
