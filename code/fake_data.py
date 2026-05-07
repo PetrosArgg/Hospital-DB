@@ -36,7 +36,6 @@ def load_ids_from_csv(filename, col_index=0):
                     ids.append(row[col_index])
     return ids
 
-# Φορτώνουμε τους πραγματικούς κωδικούς (αν υπάρχουν τα αρχεία)
 icd10_codes = load_ids_from_csv('icd10.csv', 0)
 if not icd10_codes: icd10_codes = load_ids_from_csv('ICD10_Ref.csv', 0)
 if not icd10_codes: icd10_codes = ['A00']
@@ -280,23 +279,3 @@ with open('fake_data_inserts.sql', 'w', encoding='utf-8') as f:
                 doc_ratings.append([h_id, doc_to_rate, random.randint(3,5)])
     write_inserts(f, 'Hospitalization_Ratings', hosp_ratings)
     write_inserts(f, 'Doctor_Ratings', doc_ratings)
-
-    # Images (για Τμήματα, Ιατρούς, Χειρουργεία)
-    images = []
-    img_id = 1
-    # Εικόνες τμημάτων
-    for dept_id in range(1, NUM_DEPARTMENTS + 1):
-        images.append([img_id, f"http://example.com/dept_{dept_id}.jpg", f"Φωτογραφία Τμήματος {dept_id}", None, None, None, dept_id, None, None])
-        img_id += 1
-    # Εικόνες ιατρών
-    for doc_id in range(1, NUM_DOCTORS + 1):
-        images.append([img_id, f"http://example.com/doc_{doc_id}.jpg", f"Πορτρέτο Ιατρού {doc_id}", doc_id, None, None, None, None, None])
-        img_id += 1
-    # Εικόνες χειρουργείων/εξοπλισμού
-    for room_id in range(1, NUM_OPERATING_ROOMS + 1):
-        images.append([img_id, f"http://example.com/room_{room_id}.jpg", f"Εξοπλισμός Χειρουργείου {room_id}", None, None, None, None, None, room_id])
-        img_id += 1
-    write_inserts(f, 'Images', images)
-
-    f.write("SET FOREIGN_KEY_CHECKS = 1;\n")
-    print("Το αρχείο fake_data_inserts.sql δημιουργήθηκε επιτυχώς!")
