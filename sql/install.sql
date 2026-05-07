@@ -10,7 +10,7 @@ CREATE TABLE Staff (
     last_name VARCHAR(50) NOT NULL,
     birth_date DATE NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
-    phone VARCHAR(15),
+    phone VARCHAR(15) NOT NULL,
     hire_date DATE NOT NULL,
     staff_type VARCHAR(15) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -24,13 +24,13 @@ CREATE TABLE Patients (
     amka CHAR(11) NOT NULL UNIQUE,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
-    father_name VARCHAR(50),
+    father_name VARCHAR(50) NOT NULL,
     birth_date DATE NOT NULL,
     gender VARCHAR(10) NOT NULL,
     weight DECIMAL(5,2) NOT NULL,
     height DECIMAL(3,2) NOT NULL,
-    address VARCHAR(255),
-    phone VARCHAR(15),
+    address VARCHAR(255) NOT NULL,
+    phone VARCHAR(15) NOT NULL,
     email VARCHAR(100),
     profession VARCHAR(100),
     nationality VARCHAR(50) NOT NULL,
@@ -139,11 +139,14 @@ CREATE TABLE ICD10_Ref (
 CREATE TABLE Triage_Entries (
     id INT AUTO_INCREMENT PRIMARY KEY,
     patient_id INT NOT NULL,
+    nurse_id INT NOT NULL,
+    service_time DATETIME,
     arrival_time DATETIME NOT NULL,
     symptoms TEXT,
     urgency_level INT CHECK (urgency_level BETWEEN 1 AND 5),
     referral_status VARCHAR(50),
     FOREIGN KEY (patient_id) REFERENCES Patients(id) ON DELETE RESTRICT,
+    FOREIGN KEY (nurse_id) REFERENCES Nurses(staff_id) ON DELETE RESTRICT,
     CONSTRAINT chk_referal CHECK (referral_status IN ('Exit', 'Hospitalization'))  
 );
 
@@ -312,7 +315,6 @@ CREATE TABLE Medical_Act_Assistants (
 
 CREATE TABLE Hospitalization_Ratings (
     hospitalization_id INT PRIMARY KEY,
-    medical_care_quality TINYINT CHECK (medical_care_quality BETWEEN 1 AND 5),
     nursing_care_quality TINYINT CHECK (nursing_care_quality BETWEEN 1 AND 5),
     cleanliness TINYINT CHECK (cleanliness BETWEEN 1 AND 5),
     food_quality TINYINT CHECK (food_quality BETWEEN 1 AND 5),
@@ -1195,6 +1197,51 @@ BEGIN
             SET NEW.total_cost = v_base_cost + (v_extra_days * v_daily_rate);
         END IF;
 
+    END IF;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS trg_check_assistant_staff_type$$
+
+CREATE TRIGGER trg_check_assistant_staff_type
+BEFORE INSERT ON Medical_Act_Assistants
+FOR EACH ROW
+BEGIN
+    DECLARE v_staff_type VARCHAR(15);
+
+    SELECT staff_type INTO v_staff_type
+    FROM Staff
+    WHERE id = NEW.staff_id;
+
+    IF v_staff_type NOT IN ('doctor', 'nurse') THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Βοηθός επέμβασης μπορεί να είναι μόνο ιατρός ή νοσηλευτής.';
+    END IF;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS trg_check_triage_nurse_department$$
+
+CREATE TRIGGER trg_check_triage_nurse_department
+BEFORE INSERT ON Triage_Entries
+FOR EACH ROW
+BEGIN
+    DECLARE v_department_name VARCHAR(100);
+
+    SELECT d.name INTO v_department_name
+    FROM Nurses n
+    JOIN Departments d ON n.department_id = d.id
+    WHERE n.staff_id = NEW.nurse_id;
+
+    IF v_department_name != 'Επείγοντα' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Ο νοσηλευτής διαλογής πρέπει να ανήκει στο τμήμα Επειγόντων.';
     END IF;
 END$$
 
