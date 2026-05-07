@@ -10,7 +10,7 @@ CREATE TABLE Staff (
     last_name VARCHAR(50) NOT NULL,
     birth_date DATE NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
-    phone VARCHAR(15),
+    phone VARCHAR(15) NOT NULL,
     hire_date DATE NOT NULL,
     staff_type VARCHAR(15) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -24,13 +24,13 @@ CREATE TABLE Patients (
     amka CHAR(11) NOT NULL UNIQUE,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
-    father_name VARCHAR(50),
+    father_name VARCHAR(50) NOT NULL,
     birth_date DATE NOT NULL,
     gender VARCHAR(10) NOT NULL,
     weight DECIMAL(5,2) NOT NULL,
     height DECIMAL(3,2) NOT NULL,
-    address VARCHAR(255),
-    phone VARCHAR(15),
+    address VARCHAR(255) NOT NULL,
+    phone VARCHAR(15) NOT NULL,
     email VARCHAR(100),
     profession VARCHAR(100),
     nationality VARCHAR(50) NOT NULL,
@@ -44,7 +44,7 @@ CREATE TABLE Patients (
 CREATE TABLE Doctors (
     staff_id INT PRIMARY KEY,
     license_number VARCHAR(20) NOT NULL UNIQUE,    
-    specialty VARCHAR(50),
+    specialty VARCHAR(50) NOT NULL,
     rank VARCHAR(30) NOT NULL,    
     supervisor_id INT,
 
@@ -105,14 +105,15 @@ CREATE TABLE Doctor_Departments (
 
 CREATE TABLE Beds (
     id INT AUTO_INCREMENT PRIMARY KEY,    
-    bed_number VARCHAR(20) NOT NULL UNIQUE,
+    bed_number VARCHAR(20) NOT NULL,
     bed_type VARCHAR(50) NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'Διαθέσιμη',
     department_id INT NOT NULL,
 
     FOREIGN KEY (department_id) REFERENCES Departments(id) ON DELETE RESTRICT,
     
-    CONSTRAINT chk_bed_status CHECK (status IN ('Διαθέσιμη', 'Κατειλημμένη', 'Υπό συντήρηση'))
+    CONSTRAINT chk_bed_status CHECK (status IN ('Διαθέσιμη', 'Κατειλημμένη', 'Υπό συντήρηση')),
+    UNIQUE (bed_number, department_id)
 );
 
 CREATE TABLE Emergency_Contacts (
@@ -139,11 +140,14 @@ CREATE TABLE ICD10_Ref (
 CREATE TABLE Triage_Entries (
     id INT AUTO_INCREMENT PRIMARY KEY,
     patient_id INT NOT NULL,
+    nurse_id INT NOT NULL,
+    service_time DATETIME,
     arrival_time DATETIME NOT NULL,
     symptoms TEXT,
     urgency_level INT CHECK (urgency_level BETWEEN 1 AND 5),
     referral_status VARCHAR(50),
     FOREIGN KEY (patient_id) REFERENCES Patients(id) ON DELETE RESTRICT,
+    FOREIGN KEY (nurse_id) REFERENCES Nurses(staff_id) ON DELETE RESTRICT,
     CONSTRAINT chk_referal CHECK (referral_status IN ('Exit', 'Hospitalization'))  
 );
 
@@ -312,7 +316,6 @@ CREATE TABLE Medical_Act_Assistants (
 
 CREATE TABLE Hospitalization_Ratings (
     hospitalization_id INT PRIMARY KEY,
-    medical_care_quality TINYINT CHECK (medical_care_quality BETWEEN 1 AND 5),
     nursing_care_quality TINYINT CHECK (nursing_care_quality BETWEEN 1 AND 5),
     cleanliness TINYINT CHECK (cleanliness BETWEEN 1 AND 5),
     food_quality TINYINT CHECK (food_quality BETWEEN 1 AND 5),
