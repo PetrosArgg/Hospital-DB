@@ -44,7 +44,7 @@ CREATE TABLE Patients (
 CREATE TABLE Doctors (
     staff_id INT PRIMARY KEY,
     license_number VARCHAR(20) NOT NULL UNIQUE,    
-    specialty VARCHAR(50) NULL,
+    specialty VARCHAR(50),
     rank VARCHAR(30) NOT NULL,    
     supervisor_id INT,
 
