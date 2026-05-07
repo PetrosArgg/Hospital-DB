@@ -357,22 +357,66 @@ CREATE TABLE Images (
     )
 );
 
-CREATE INDEX idx_patients_name ON Patients (last_name, first_name);
-CREATE INDEX idx_staff_name ON Staff (last_name, first_name);
-
-CREATE INDEX idx_hospitalizations_entry ON Hospitalizations (entry_date);
-CREATE INDEX idx_hospitalizations_exit ON Hospitalizations (exit_date);
-
-CREATE INDEX idx_medical_acts_time ON Medical_Acts (scheduled_time);
-
-CREATE INDEX idx_prescriptions_dates ON Prescriptions (start_date, end_date);
-CREATE INDEX idx_labexam_date ON LabExam (exam_date);
-
-CREATE INDEX idx_beds_status ON Beds (status);
-
-CREATE INDEX idx_triage_arrival ON Triage_Entries (arrival_time);
-
-CREATE INDEX idx_shifts_date ON Shifts (shift_date);
+-- INDEXES
+-- Staff
+CREATE INDEX idx_staff_name ON Staff(last_name, first_name);
+CREATE INDEX idx_staff_type ON Staff(staff_type);
+-- Patients
+CREATE INDEX idx_patients_name ON Patients(last_name, first_name);
+CREATE INDEX idx_patients_insurance ON Patients(insurance_provider);
+-- Doctors
+CREATE INDEX idx_doctors_specialty ON Doctors(specialty);
+CREATE INDEX idx_doctors_rank ON Doctors(rank);
+CREATE INDEX idx_doctors_supervisor ON Doctors(supervisor_id);
+-- Departments
+CREATE INDEX idx_departments_head ON Departments(head_doctor_id);
+-- Beds
+CREATE INDEX idx_beds_status ON Beds(status);
+CREATE INDEX idx_beds_department ON Beds(department_id);
+-- Triage_Entries
+CREATE INDEX idx_triage_patient ON Triage_Entries(patient_id);
+CREATE INDEX idx_triage_urgency ON Triage_Entries(urgency_level);
+CREATE INDEX idx_triage_arrival ON Triage_Entries(arrival_time);
+-- Hospitalizations
+CREATE INDEX idx_hosp_patient ON Hospitalizations(patient_id);
+CREATE INDEX idx_hosp_department ON Hospitalizations(department_id);
+CREATE INDEX idx_hosp_dates ON Hospitalizations(entry_date, exit_date);
+CREATE INDEX idx_hosp_ken ON Hospitalizations(ken_code);
+CREATE INDEX idx_hosp_icd10 ON Hospitalizations(icd10_entry_code);
+-- Shifts
+CREATE INDEX idx_shifts_date ON Shifts(shift_date);
+CREATE INDEX idx_shifts_type ON Shifts(shift_type);
+CREATE INDEX idx_shifts_department ON Shifts(department_id, shift_date);
+-- Staff_Shifts
+CREATE INDEX idx_staff_shifts_staff ON Staff_Shifts(staff_id);
+CREATE INDEX idx_staff_shifts_shift ON Staff_Shifts(shift_id);
+-- Shift_Monthly_Limits
+CREATE INDEX idx_sml_staff_date ON Shift_Monthly_Limits(staff_id, ml_year, ml_month);
+-- Prescriptions
+CREATE INDEX idx_presc_doctor ON Prescriptions(doctor_id);
+CREATE INDEX idx_presc_patient ON Prescriptions(patient_id);
+CREATE INDEX idx_presc_medication ON Prescriptions(medication_id);
+CREATE INDEX idx_presc_hospitalization ON Prescriptions(hospitalization_id);
+CREATE INDEX idx_presc_dates ON Prescriptions(start_date, end_date);
+-- Medications & Substances
+CREATE INDEX idx_medsubst_medication ON Medication_Substances(medication_id);
+CREATE INDEX idx_medsubst_substance ON Medication_Substances(substance_id);
+-- Patient_Allergies
+CREATE INDEX idx_allergies_patient ON Patient_Allergies(patient_id);
+CREATE INDEX idx_allergies_substance ON Patient_Allergies(substance_id);
+-- Medical_Acts
+CREATE INDEX idx_medacts_doctor ON Medical_Acts(main_doctor_id);
+CREATE INDEX idx_medacts_room ON Medical_Acts(room_id);
+CREATE INDEX idx_medacts_time ON Medical_Acts(scheduled_time);
+-- LabExam
+CREATE INDEX idx_labexam_date ON LabExam(exam_date);
+CREATE INDEX idx_labexam_hospitalization ON LabExam(hospitalization_id);
+CREATE INDEX idx_labexam_doctor ON LabExam(doctor_id);
+-- Doctor_Ratings
+CREATE INDEX idx_docrat_doctor ON Doctor_Ratings(doctor_id);
+CREATE INDEX idx_docrat_hosp ON Doctor_Ratings(hospitalization_id);
+-- Hospitalization_Ratings
+CREATE INDEX idx_hosprat_hosp ON Hospitalization_Ratings(hospitalization_id);
 
 
 -- FUNCTIONS
@@ -697,12 +741,12 @@ RETURNS BOOLEAN
 DETERMINISTIC
 READS SQL DATA
 BEGIN
-    DECLARE v_new_start     DATETIME;
-    DECLARE v_new_end       DATETIME;
-    DECLARE v_prev_end      DATETIME;
-    DECLARE v_next_start    DATETIME;
-    DECLARE v_shift_date    DATE;
-    DECLARE v_shift_type    VARCHAR(9);
+    DECLARE v_new_start DATETIME;
+    DECLARE v_new_end DATETIME;
+    DECLARE v_prev_end DATETIME;
+    DECLARE v_next_start DATETIME;
+    DECLARE v_shift_date DATE;
+    DECLARE v_shift_type VARCHAR(9);
 
     SELECT s.shift_date, s.shift_type
     INTO   v_shift_date, v_shift_type
@@ -774,11 +818,6 @@ BEGIN
         SET MESSAGE_TEXT = 'Το προσωπικό έχει φτάσει το μηνιαίο όριο εφημεριών.';
     END IF;
 
-    IF check_min_staff_per_shift(NEW.shift_id, v_staff_type) = FALSE THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Η βάρδια δεν πληροί τον ελάχιστο αριθμό προσωπικού.';
-    END IF;
-
     IF check_resident_supervisor(NEW.shift_id, NEW.staff_id) = FALSE THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Παρουσία ειδικευόμενου χωρίς Επιμελητή Α΄ ή Διευθυντή στη βάρδια.';
@@ -793,10 +832,21 @@ BEGIN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Υπέρβαση ορίου 3 συνεχόμενων νυχτερινών βαρδιών.';
     END IF;
-
-
 END$$
 
+DROP TRIGGER IF EXISTS trg_check_min_staff_on_shift_start$$
+
+CREATE TRIGGER trg_check_min_staff_on_shift_start
+BEFORE UPDATE ON Shifts
+FOR EACH ROW
+BEGIN
+    IF OLD.shift_status != 'ongoing' AND NEW.shift_status = 'ongoing' THEN
+        IF check_min_staff_per_shift(NEW.id, NULL) = FALSE THEN
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Η βάρδια δεν έχει τον ελάχιστο αριθμό προσωπικού για να ξεκινήσει.';
+        END IF;
+    END IF;
+END$$
 
 DROP TRIGGER IF EXISTS trg_update_monthly_limits$$
 
@@ -1058,18 +1108,16 @@ CREATE TRIGGER trg_check_assistant_conflict
 BEFORE INSERT ON Medical_Act_Assistants
 FOR EACH ROW
 BEGIN
-    DECLARE v_new_start     DATETIME;
-    DECLARE v_new_end       DATETIME;
-    DECLARE v_conflict      INT;
+    DECLARE v_new_start DATETIME;
+    DECLARE v_new_end DATETIME;
+    DECLARE v_conflict INT;
 
-    -- Στοιχεία της επέμβασης που προστίθεται ο βοηθός
     SELECT scheduled_time, 
            DATE_ADD(scheduled_time, INTERVAL duration_minutes MINUTE)
     INTO   v_new_start, v_new_end
     FROM   Medical_Acts
     WHERE  id = NEW.act_id;
 
-    -- Ο βοηθός συμμετέχει ήδη σε άλλη επέμβαση την ίδια ώρα;
     SELECT COUNT(*) INTO v_conflict
     FROM   Medical_Act_Assistants maa
     JOIN   Medical_Acts ma ON maa.act_id = ma.id
@@ -1104,13 +1152,49 @@ BEGIN
     DECLARE v_prescribed INT;
 
     SELECT COUNT(*) INTO v_prescribed
-    FROM   Prescriptions
-    WHERE  hospitalization_id = NEW.hospitalization_id
-      AND  doctor_id          = NEW.doctor_id;
+    FROM Prescriptions
+    WHERE hospitalization_id = NEW.hospitalization_id
+      AND doctor_id = NEW.doctor_id;
 
     IF v_prescribed = 0 THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Μπορείτε να αξιολογήσετε μόνο ιατρούς που συνταγογράφησαν κατά τη νοσηλεία σας.';
+    END IF;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS trg_calculate_total_cost$$
+
+CREATE TRIGGER trg_calculate_total_cost
+BEFORE UPDATE ON Hospitalizations
+FOR EACH ROW
+BEGIN
+    DECLARE v_base_cost DECIMAL(10,2);
+    DECLARE v_mdn_days INT;
+    DECLARE v_actual_days INT;
+    DECLARE v_extra_days INT;
+    DECLARE v_daily_rate DECIMAL(10,2);
+
+    IF OLD.exit_date IS NULL AND NEW.exit_date IS NOT NULL AND NEW.ken_code IS NOT NULL THEN
+
+        SELECT base_cost, mdn_days
+        INTO v_base_cost, v_mdn_days
+        FROM KEN_Ref
+        WHERE code = NEW.ken_code;
+
+        SET v_actual_days = DATEDIFF(NEW.exit_date, NEW.entry_date);
+
+        IF v_actual_days <= v_mdn_days THEN
+            SET NEW.total_cost = v_base_cost;
+        ELSE
+            SET v_extra_days  = v_actual_days - v_mdn_days;
+            SET v_daily_rate  = v_base_cost / v_mdn_days;
+            SET NEW.total_cost = v_base_cost + (v_extra_days * v_daily_rate);
+        END IF;
+
     END IF;
 END$$
 
