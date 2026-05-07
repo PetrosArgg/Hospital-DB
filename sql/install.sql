@@ -44,7 +44,7 @@ CREATE TABLE Patients (
 CREATE TABLE Doctors (
     staff_id INT PRIMARY KEY,
     license_number VARCHAR(20) NOT NULL UNIQUE,    
-    specialty VARCHAR(50) NOT NULL,
+    specialty VARCHAR(50) NULL,
     rank VARCHAR(30) NOT NULL,    
     supervisor_id INT,
 
@@ -105,15 +105,14 @@ CREATE TABLE Doctor_Departments (
 
 CREATE TABLE Beds (
     id INT AUTO_INCREMENT PRIMARY KEY,    
-    bed_number VARCHAR(20) NOT NULL,
+    bed_number VARCHAR(20) NOT NULL UNIQUE,
     bed_type VARCHAR(50) NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'Διαθέσιμη',
     department_id INT NOT NULL,
 
     FOREIGN KEY (department_id) REFERENCES Departments(id) ON DELETE RESTRICT,
     
-    CONSTRAINT chk_bed_status CHECK (status IN ('Διαθέσιμη', 'Κατειλημμένη', 'Υπό συντήρηση')),
-    UNIQUE (bed_number, department_id)
+    CONSTRAINT chk_bed_status CHECK (status IN ('Διαθέσιμη', 'Κατειλημμένη', 'Υπό συντήρηση'))
 );
 
 CREATE TABLE Emergency_Contacts (
@@ -1198,6 +1197,51 @@ BEGIN
             SET NEW.total_cost = v_base_cost + (v_extra_days * v_daily_rate);
         END IF;
 
+    END IF;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS trg_check_assistant_staff_type$$
+
+CREATE TRIGGER trg_check_assistant_staff_type
+BEFORE INSERT ON Medical_Act_Assistants
+FOR EACH ROW
+BEGIN
+    DECLARE v_staff_type VARCHAR(15);
+
+    SELECT staff_type INTO v_staff_type
+    FROM Staff
+    WHERE id = NEW.staff_id;
+
+    IF v_staff_type NOT IN ('doctor', 'nurse') THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Βοηθός επέμβασης μπορεί να είναι μόνο ιατρός ή νοσηλευτής.';
+    END IF;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS trg_check_triage_nurse_department$$
+
+CREATE TRIGGER trg_check_triage_nurse_department
+BEFORE INSERT ON Triage_Entries
+FOR EACH ROW
+BEGIN
+    DECLARE v_department_name VARCHAR(100);
+
+    SELECT d.name INTO v_department_name
+    FROM Nurses n
+    JOIN Departments d ON n.department_id = d.id
+    WHERE n.staff_id = NEW.nurse_id;
+
+    IF v_department_name != 'Επείγοντα' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Ο νοσηλευτής διαλογής πρέπει να ανήκει στο τμήμα Επειγόντων.';
     END IF;
 END$$
 
