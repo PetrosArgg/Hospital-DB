@@ -1,11 +1,9 @@
--- Database creation
--- CREATE DATABASE `hospital_db` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci */;
 DROP DATABASE IF EXISTS hospitaldb;
 CREATE DATABASE hospitaldb;
 use hospitaldb;
 
 -- Tables Creation
-CREATE TABLE Staff (--checked
+CREATE TABLE Staff (
     id INT AUTO_INCREMENT PRIMARY KEY, 
     amka CHAR(11) NOT NULL UNIQUE, 
     first_name VARCHAR(50) NOT NULL,
@@ -21,7 +19,7 @@ CREATE TABLE Staff (--checked
     CONSTRAINT chk_staff_type CHECK (staff_type IN ('doctor', 'nurse', 'admin'))
 );
 
-CREATE TABLE Patients (--checked
+CREATE TABLE Patients (
     id INT AUTO_INCREMENT PRIMARY KEY,
     amka CHAR(11) NOT NULL UNIQUE,
     first_name VARCHAR(50) NOT NULL,
@@ -43,7 +41,7 @@ CREATE TABLE Patients (--checked
     CONSTRAINT chk_gender CHECK (gender IN ('Male', 'Female', 'Other'))
 );
 
-CREATE TABLE Doctors (--checked
+CREATE TABLE Doctors (
     staff_id INT PRIMARY KEY,
     license_number VARCHAR(20) NOT NULL UNIQUE,    
     specialty VARCHAR(50),
@@ -62,7 +60,7 @@ CREATE TABLE Doctors (--checked
     )
 );
 
-CREATE TABLE Departments (--checked
+CREATE TABLE Departments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE, 
     description TEXT, 
@@ -76,7 +74,7 @@ CREATE TABLE Departments (--checked
     FOREIGN KEY (head_doctor_id) REFERENCES Doctors(staff_id) ON DELETE SET NULL
 );
 
-CREATE TABLE Nurses (--checked
+CREATE TABLE Nurses (
     staff_id INT PRIMARY KEY,
     rank VARCHAR(50) NOT NULL,
     department_id INT NOT NULL,
@@ -86,7 +84,7 @@ CREATE TABLE Nurses (--checked
     CONSTRAINT chk_nurse_rank CHECK (rank IN ('Βοηθός Νοσηλευτή', 'Νοσηλευτής', 'Προϊστάμενος'))
 );
 
-CREATE TABLE Administrative_Staff (--checked
+CREATE TABLE Administrative_Staff (
     staff_id INT PRIMARY KEY,
     duty_role VARCHAR(100) NOT NULL,
     office_location VARCHAR(50),    
@@ -95,7 +93,7 @@ CREATE TABLE Administrative_Staff (--checked
     FOREIGN KEY (department_id) REFERENCES Departments(id) ON DELETE RESTRICT
 );
 
-CREATE TABLE Doctor_Departments (--checked
+CREATE TABLE Doctor_Departments (
     doctor_id INT NOT NULL,
     department_id INT NOT NULL,
     
@@ -105,7 +103,7 @@ CREATE TABLE Doctor_Departments (--checked
     FOREIGN KEY (department_id) REFERENCES Departments(id) ON DELETE CASCADE
 );
 
-CREATE TABLE Beds (--checked
+CREATE TABLE Beds (
     id INT AUTO_INCREMENT PRIMARY KEY,    
     bed_number VARCHAR(20) NOT NULL UNIQUE,
     bed_type VARCHAR(50) NOT NULL,
@@ -117,7 +115,7 @@ CREATE TABLE Beds (--checked
     CONSTRAINT chk_bed_status CHECK (status IN ('Διαθέσιμη', 'Κατειλημμένη', 'Υπό συντήρηση'))
 );
 
-CREATE TABLE Emergency_Contacts (--checked
+CREATE TABLE Emergency_Contacts (
     id INT AUTO_INCREMENT PRIMARY KEY,
     patient_id INT NOT NULL,
     first_name VARCHAR(50) NOT NULL,
@@ -127,18 +125,18 @@ CREATE TABLE Emergency_Contacts (--checked
     FOREIGN KEY (patient_id) REFERENCES Patients(id) ON DELETE CASCADE
 );
 
-CREATE TABLE KEN_Ref (--checked
+CREATE TABLE KEN_Ref (
     code VARCHAR(10) PRIMARY KEY,
     base_cost DECIMAL(10,2) NOT NULL,
     mdn_days INT NOT NULL
 );
 
-CREATE TABLE ICD10_Ref (--checked
+CREATE TABLE ICD10_Ref (
     code VARCHAR(10) PRIMARY KEY,
     description TEXT NOT NULL
 );
 
-CREATE TABLE Triage_Entries (--checked
+CREATE TABLE Triage_Entries (
     id INT AUTO_INCREMENT PRIMARY KEY,
     patient_id INT NOT NULL,
     arrival_time DATETIME NOT NULL,
@@ -149,7 +147,7 @@ CREATE TABLE Triage_Entries (--checked
     CONSTRAINT chk_referal CHECK (referral_status IN ('Exit', 'Hospitalization'))  
 );
 
-CREATE TABLE Hospitalizations (--checked
+CREATE TABLE Hospitalizations (
     id INT AUTO_INCREMENT PRIMARY KEY,
     patient_id INT NOT NULL,
     bed_id INT NOT NULL,
@@ -171,18 +169,18 @@ CREATE TABLE Hospitalizations (--checked
     FOREIGN KEY (triage_id) REFERENCES Triage_Entries(id) ON DELETE RESTRICT
 );
 
-CREATE TABLE Active_Substances (--checked
+CREATE TABLE Active_Substances (
     id INT AUTO_INCREMENT PRIMARY KEY,
     substance_name VARCHAR(255) NOT NULL UNIQUE
 );
 
-CREATE TABLE Medications (--checked
+CREATE TABLE Medications (
     id INT AUTO_INCREMENT PRIMARY KEY,
     product_name VARCHAR(255) NOT NULL
 );
 
 -- Ενδιάμεσος πίνακας (M to M)
-CREATE TABLE Medication_Substances (--checked
+CREATE TABLE Medication_Substances (
     medication_id INT NOT NULL,
     substance_id INT NOT NULL,
     PRIMARY KEY (medication_id, substance_id),
@@ -190,7 +188,7 @@ CREATE TABLE Medication_Substances (--checked
     FOREIGN KEY (substance_id) REFERENCES Active_Substances(id) ON DELETE RESTRICT
 );
 
-CREATE TABLE Patient_Allergies (--checked
+CREATE TABLE Patient_Allergies (
     patient_id INT NOT NULL,
     substance_id INT NOT NULL,
     PRIMARY KEY (patient_id, substance_id),
@@ -198,7 +196,7 @@ CREATE TABLE Patient_Allergies (--checked
     FOREIGN KEY (substance_id) REFERENCES Active_Substances(id) ON DELETE RESTRICT
 );
 
-CREATE TABLE Prescriptions (--checked
+CREATE TABLE Prescriptions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     doctor_id INT NOT NULL,
     patient_id INT NOT NULL,
@@ -215,7 +213,7 @@ CREATE TABLE Prescriptions (--checked
     UNIQUE KEY unique_prescription (doctor_id, patient_id, medication_id, start_date)
 );
 
-CREATE TABLE Shifts (--checked
+CREATE TABLE Shifts (
     id INT AUTO_INCREMENT PRIMARY KEY,
     department_id INT NOT NULL,
     shift_type VARCHAR(9) NOT NULL,
@@ -230,7 +228,7 @@ CREATE TABLE Shifts (--checked
     CONSTRAINT chk_shiftstatus CHECK (shift_status IN ('scheduled', 'ongoing', 'completed', 'cancelled'))
 );
 
-CREATE TABLE Staff_Shifts (--checked
+CREATE TABLE Staff_Shifts (
     staff_id INT NOT NULL,
     shift_id INT NOT NULL,
     start_time TIME,
@@ -241,7 +239,7 @@ CREATE TABLE Staff_Shifts (--checked
     FOREIGN KEY (shift_id) REFERENCES Shifts(id) ON DELETE CASCADE
 );
 
-CREATE TABLE Shift_Monthly_Limits (--checked
+CREATE TABLE Shift_Monthly_Limits (
     id INT PRIMARY KEY AUTO_INCREMENT,
     staff_id INT NOT NULL,
     ml_year INT NOT NULL,
@@ -252,35 +250,35 @@ CREATE TABLE Shift_Monthly_Limits (--checked
 );
 
 
-CREATE TABLE LabExam_Ref (--checked
+CREATE TABLE LabExam_Ref (
     code VARCHAR(20) PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     type VARCHAR(50) NOT NULL
 );
 
-CREATE TABLE LabExam (--checked but pending talk
+CREATE TABLE LabExam (
     id INT AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(20) NOT NULL,
     exam_date DATETIME NOT NULL,
     result TEXT,
     result_value DECIMAL(10,3),   
     result_unit VARCHAR(20),      
-    cost DECIMAL(10,2) NOT NULL, --maybe na mpei sto LabExam_Ref
+    cost DECIMAL(10,2) NOT NULL,
     doctor_id INT, 
     hospitalization_id INT NOT NULL,
     FOREIGN KEY (code) REFERENCES LabExam_Ref(code) ON DELETE RESTRICT,
-    FOREIGN KEY (doctor_id) REFERENCES Doctors(staff_id) ON DELETE SET NULL, --or restrict???
+    FOREIGN KEY (doctor_id) REFERENCES Doctors(staff_id) ON DELETE SET NULL, 
     FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id) ON DELETE RESTRICT
 );
 
-CREATE TABLE Operating_Rooms (--checked
+CREATE TABLE Operating_Rooms (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
     room_type TEXT NOT NULL
 );
 
 -- Προσθέτω πίνακα για τους κωδικούς των επεμβάσεων
-CREATE TABLE MedicalAct_Ref (--checked
+CREATE TABLE MedicalAct_Ref (
     code VARCHAR(20) PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     category VARCHAR(30) NOT NULL,
@@ -288,11 +286,11 @@ CREATE TABLE MedicalAct_Ref (--checked
     CHECK (category IN ('Χειρουργική', 'Διαγνωστική', 'Θεραπευτική'))
 );
 
-CREATE TABLE Medical_Acts (--checked but pending talk
+CREATE TABLE Medical_Acts (
     id INT AUTO_INCREMENT PRIMARY KEY,
     act_code VARCHAR(20) NOT NULL, 
     duration_minutes INT NOT NULL,
-    cost DECIMAL(10,2) NOT NULL, --maybe na mpei sto REF
+    cost DECIMAL(10,2) NOT NULL, 
     scheduled_time DATETIME NOT NULL,
     hospitalization_id INT NOT NULL,
     room_id INT NOT NULL,
@@ -327,7 +325,7 @@ CREATE TABLE Doctor_Ratings (
     doctor_id INT,
     medical_care_quality TINYINT CHECK (medical_care_quality BETWEEN 1 AND 5),
     PRIMARY KEY (hospitalization_id, doctor_id),
-    FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id) ON DELETE RESTRICT, --OR CASCADE???
+    FOREIGN KEY (hospitalization_id) REFERENCES Hospitalizations(id) ON DELETE RESTRICT,
     FOREIGN KEY (doctor_id) REFERENCES Doctors(staff_id) ON DELETE RESTRICT
 );
 
@@ -391,7 +389,7 @@ BEGIN
     DECLARE depth INT DEFAULT 0;
     SET current_id = supervisor_id;
 
-    WHILE current_id IS NOT NULL AND depth < 100 DO --100 is too much but ok
+    WHILE current_id IS NOT NULL AND depth < 100 DO
         IF current_id = new_doctor_id THEN
             RETURN TRUE;
         END IF;
