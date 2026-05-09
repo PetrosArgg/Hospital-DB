@@ -142,9 +142,9 @@ CREATE TABLE Triage_Entries (
     nurse_id INT NOT NULL,
     service_time DATETIME,
     arrival_time DATETIME NOT NULL,
-    symptoms TEXT,
-    urgency_level INT CHECK (urgency_level BETWEEN 1 AND 5),
-    referral_status VARCHAR(50),
+    symptoms TEXT NOT NULL,
+    urgency_level INT NOT NULL CHECK (urgency_level BETWEEN 1 AND 5),
+    referral_status VARCHAR(50) NOT NULL,
     FOREIGN KEY (patient_id) REFERENCES Patients(id) ON DELETE RESTRICT,
     FOREIGN KEY (nurse_id) REFERENCES Nurses(staff_id) ON DELETE RESTRICT,
     CONSTRAINT chk_referal CHECK (referral_status IN ('Exit', 'Hospitalization'))  
@@ -161,7 +161,7 @@ CREATE TABLE Hospitalizations (
     icd10_exit_code VARCHAR(10),
     ken_code VARCHAR(10),
     total_cost DECIMAL(10,2),
-    triage_id INT NOT NULL,
+    triage_id INT NOT NULL UNIQUE,
     
     FOREIGN KEY (patient_id) REFERENCES Patients(id) ON DELETE RESTRICT,
     FOREIGN KEY (bed_id) REFERENCES Beds(id) ON DELETE RESTRICT,
@@ -339,14 +339,12 @@ CREATE TABLE Images (
     nurse_id INT,
     admin_id INT,
     department_id INT,
-    patient_id INT,
     room_id INT,
 
     FOREIGN KEY (doctor_id) REFERENCES Doctors(staff_id) ON DELETE CASCADE,
     FOREIGN KEY (nurse_id) REFERENCES Nurses(staff_id) ON DELETE CASCADE,
     FOREIGN KEY (admin_id) REFERENCES Administrative_Staff(staff_id) ON DELETE CASCADE,
     FOREIGN KEY (department_id) REFERENCES Departments(id) ON DELETE CASCADE,
-    FOREIGN KEY (patient_id) REFERENCES Patients(id) ON DELETE CASCADE,
     FOREIGN KEY (room_id) REFERENCES Operating_Rooms(id) ON DELETE CASCADE,
 
     CONSTRAINT chk_image_entity CHECK (
@@ -354,7 +352,6 @@ CREATE TABLE Images (
         (nurse_id IS NOT NULL) +
         (admin_id IS NOT NULL) +
         (department_id IS NOT NULL) +
-        (patient_id IS NOT NULL) +
         (room_id IS NOT NULL) = 1
     )
 );
@@ -1243,6 +1240,32 @@ BEGIN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Ο νοσηλευτής διαλογής πρέπει να ανήκει στο τμήμα Επειγόντων.';
     END IF;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS trg_update_bed_count_on_insert$$
+
+CREATE TRIGGER trg_update_bed_count_on_insert
+AFTER INSERT ON Beds
+FOR EACH ROW
+BEGIN
+    UPDATE Departments 
+    SET bed_count = bed_count + 1
+    WHERE id = NEW.department_id;
+END$$
+
+DROP TRIGGER IF EXISTS trg_update_bed_count_on_delete$$
+
+CREATE TRIGGER trg_update_bed_count_on_delete
+AFTER DELETE ON Beds
+FOR EACH ROW
+BEGIN
+    UPDATE Departments 
+    SET bed_count = bed_count - 1
+    WHERE id = OLD.department_id;
 END$$
 
 DELIMITER ;
