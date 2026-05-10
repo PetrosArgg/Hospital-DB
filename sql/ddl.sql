@@ -7,11 +7,11 @@ use hospitaldb;
 -- Tables Creation
 CREATE TABLE Staff (
     id INT AUTO_INCREMENT PRIMARY KEY, 
-    amka CHAR(11) NOT NULL UNIQUE, 
+    amka CHAR(11) NOT NULL, 
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     birth_date DATE NOT NULL,
-    email VARCHAR(100) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL,
     phone VARCHAR(15) NOT NULL,
     hire_date DATE NOT NULL,
     staff_type VARCHAR(15) NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE Staff (
 
 CREATE TABLE Patients (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    amka CHAR(11) NOT NULL UNIQUE,
+    amka CHAR(11) NOT NULL,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     father_name VARCHAR(50) NOT NULL,
@@ -31,10 +31,10 @@ CREATE TABLE Patients (
     gender VARCHAR(10) NOT NULL,
     weight DECIMAL(5,2) NOT NULL,
     height DECIMAL(3,2) NOT NULL,
-    address VARCHAR(255) NOT NULL,
+    address TEXT NOT NULL,
     phone VARCHAR(15) NOT NULL,
-    email VARCHAR(100),
-    profession VARCHAR(100),
+    email VARCHAR(255),
+    profession VARCHAR(255),
     nationality VARCHAR(50) NOT NULL,
     insurance_provider VARCHAR(100) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -45,7 +45,7 @@ CREATE TABLE Patients (
 
 CREATE TABLE Doctors (
     staff_id INT PRIMARY KEY,
-    license_number VARCHAR(20) NOT NULL UNIQUE,    
+    license_number VARCHAR(20) NOT NULL,    
     specialty VARCHAR(50),
     rank VARCHAR(30) NOT NULL,    
     supervisor_id INT,
@@ -64,7 +64,7 @@ CREATE TABLE Doctors (
 
 CREATE TABLE Departments (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE, 
+    name VARCHAR(100) NOT NULL, 
     description TEXT, 
     bed_count INT NOT NULL DEFAULT 0, 
     location VARCHAR(100),
@@ -107,7 +107,7 @@ CREATE TABLE Doctor_Departments (
 
 CREATE TABLE Beds (
     id INT AUTO_INCREMENT PRIMARY KEY,    
-    bed_number VARCHAR(20) NOT NULL UNIQUE,
+    bed_number VARCHAR(20) NOT NULL,
     bed_type VARCHAR(50) NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'Διαθέσιμη',
     department_id INT NOT NULL,
@@ -128,14 +128,18 @@ CREATE TABLE Emergency_Contacts (
 );
 
 CREATE TABLE KEN_Ref (
-    code VARCHAR(10) PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(100) NOT NULL,
     base_cost DECIMAL(10,2) NOT NULL,
-    mdn_days INT NOT NULL
+    mdn_days INT NOT NULL,
+    INDEX (code)
 );
 
 CREATE TABLE ICD10_Ref (
-    code VARCHAR(10) PRIMARY KEY,
-    description TEXT NOT NULL
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(100) NOT NULL,
+    description TEXT NOT NULL,
+    INDEX (code)
 );
 
 CREATE TABLE Triage_Entries (
@@ -159,9 +163,9 @@ CREATE TABLE Hospitalizations (
     department_id INT NOT NULL,
     entry_date DATETIME NOT NULL,
     exit_date DATETIME,
-    icd10_entry_code VARCHAR(10),
-    icd10_exit_code VARCHAR(10),
-    ken_code VARCHAR(10),
+    icd10_entry_code VARCHAR(100),
+    icd10_exit_code VARCHAR(100),
+    ken_code VARCHAR(100),
     total_cost DECIMAL(10,2),
     triage_id INT NOT NULL UNIQUE,
     
@@ -176,12 +180,12 @@ CREATE TABLE Hospitalizations (
 
 CREATE TABLE Active_Substances (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    substance_name VARCHAR(255) NOT NULL UNIQUE
+    substance_name TEXT
 );
 
 CREATE TABLE Medications (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    product_name VARCHAR(255) NOT NULL
+    product_name TEXT
 );
 
 -- Ενδιάμεσος πίνακας (M to M)
@@ -256,14 +260,16 @@ CREATE TABLE Shift_Monthly_Limits (
 
 
 CREATE TABLE LabExam_Ref (
-    code VARCHAR(20) PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    type VARCHAR(50) NOT NULL
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(100) NOT NULL,
+    name TEXT,
+    type VARCHAR(50) NOT NULL,
+    INDEX (code)
 );
 
 CREATE TABLE LabExam (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    code VARCHAR(20) NOT NULL,
+    code VARCHAR(100) NOT NULL,
     exam_date DATETIME NOT NULL,
     result TEXT,
     result_value DECIMAL(10,3),   
@@ -284,16 +290,18 @@ CREATE TABLE Operating_Rooms (
 
 -- Προσθέτω πίνακα για τους κωδικούς των επεμβάσεων
 CREATE TABLE MedicalAct_Ref (
-    code VARCHAR(20) PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(100) NOT NULL,
+    name TEXT,
     category VARCHAR(30) NOT NULL,
+    INDEX (code),
     CONSTRAINT chk_act_ref_category
     CHECK (category IN ('Χειρουργική', 'Διαγνωστική', 'Θεραπευτική'))
 );
 
 CREATE TABLE Medical_Acts (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    act_code VARCHAR(20) NOT NULL, 
+    act_code VARCHAR(100) NOT NULL, 
     duration_minutes INT NOT NULL,
     cost DECIMAL(10,2) NOT NULL, 
     scheduled_time DATETIME NOT NULL,
