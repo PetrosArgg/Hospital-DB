@@ -44,7 +44,7 @@ def write_inserts(f, table_name, data):
 # --- Reference Data Loading Functions ---
 def load_icd10():
     data = []
-    path = 'code/icd10.csv'
+    path = 'csv/icd10.csv'
     if os.path.exists(path):
         with open(path, 'r', encoding='utf-8-sig') as f:
             reader = csv.reader(f, delimiter=';')
@@ -57,7 +57,7 @@ def load_icd10():
 
 def load_ken_ref():
     data = []
-    path = 'code/KEN_Ref.csv'
+    path = 'csv/KEN_Ref.csv'
     if os.path.exists(path):
         with open(path, 'r', encoding='utf-8-sig') as f:
             reader = csv.reader(f, delimiter=';')
@@ -82,7 +82,7 @@ def load_meds_and_subs():
     subs_map = {} # name -> id
     meds = [] # [id, product_name]
     bridge = [] # [med_id, sub_id]
-    path = 'code/Medications.csv'
+    path = 'csv/Medications.csv'
     if os.path.exists(path):
         with open(path, 'r', encoding='utf-8-sig') as f:
             reader = csv.reader(f, delimiter=';')
@@ -139,8 +139,8 @@ def load_split_refs(path, target_type):
 icd10_ref = load_icd10()
 ken_ref = load_ken_ref()
 active_subs, medications, med_substances = load_meds_and_subs()
-lab_ref = load_split_refs('code/LabExam_Ref.csv', 'lab')
-medact_ref = load_split_refs('code/MedicalAct_Ref.csv', 'medact')
+lab_ref = load_split_refs('csv/LabExam_Ref.csv', 'lab')
+medact_ref = load_split_refs('csv/MedicalAct_Ref.csv', 'medact')
 
 with open('load.sql', 'w', encoding='utf-8') as f:
     f.write("SET FOREIGN_KEY_CHECKS = 0;\n")
@@ -157,7 +157,8 @@ with open('load.sql', 'w', encoding='utf-8') as f:
     depts_data = []
     dept_names = ['Καρδιολογία', 'Χειρουργική', 'ΜΕΘ','Παθολογικό', 'Ορθοπεδικό', 'Παιδιατρικό', 'Νευρολογικό', 'Ουρολογικό', 'Οφθαλμολογικό', 'ΩΡΛ', 'Δερματολογικό', 'Γυναικολογικό', 'Ψυχιατρικό', 'Ακτινολογικό']
     for i in range(1, NUM_DEPARTMENTS + 1):
-        depts_data.append([i, dept_names[i-1], f"Περιγραφή τμήματος {dept_names[i-1]}", random.randint(10, 40), f"Όροφος {random.randint(0,4)}", None, 3, 6, 2])
+        head_doc = random.randint(1, 10) # Picking from the directors pool
+        depts_data.append([i, dept_names[i-1], f"Περιγραφή τμήματος {dept_names[i-1]}", random.randint(10, 40), f"Όροφος {random.randint(0,4)}", head_doc, 3, 6, 2])
     write_inserts(f, 'Departments', depts_data)
 
     # Operating Rooms
