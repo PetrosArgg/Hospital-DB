@@ -1,14 +1,14 @@
 import csv
 import os
 
-input_path = 'LabExam_MedicalActs.csv'
+input_path = 'csv/LabExam_MedicalActs.csv'
 
 if not os.path.exists(input_path):
-    print("Could not find LabExam_MedicalActs.csv")
+    print("Could not find csv/LabExam_MedicalActs.csv")
     exit(1)
 
-medical_path = 'MedicalAct_Ref.csv'
-lab_path = 'LabExam_Ref.csv'
+medical_path = 'csv/MedicalAct_Ref.csv'
+lab_path = 'csv/LabExam_Ref.csv'
 
 with open(input_path, 'r', encoding='utf-8') as fin, \
      open(medical_path, 'w', encoding='utf-8', newline='') as fmed, \
@@ -44,4 +44,3 @@ with open(input_path, 'r', encoding='utf-8') as fin, \
             elif current_target == 'lab':
                 writer_lab.writerow(row)
 
-print("Successfully split LabExam_MedicalActs.csv into MedicalAct_Ref.csv and LabExam_Ref.csv (ignoring categories after E)")
