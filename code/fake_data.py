@@ -208,11 +208,13 @@ with open('load.sql', 'w', encoding='utf-8') as f:
             rank, supervisor = 'Επιμελητής Α΄', random.choice(directors_ids)
         elif i in epi_b_ids:
             rank, supervisor = 'Επιμελητής Β΄', random.choice(directors_ids + epi_a_ids)
-        else:
+        elif i in residents_ids:
             rank, supervisor = 'Ειδικευόμενος', random.choice(directors_ids + epi_a_ids + epi_b_ids)
             
         doctors_data.append([i, lic, spec, rank, supervisor])
     write_inserts(f, 'Doctors', doctors_data)
+
+    doctor_rank_by_id = {row[0]: row[3] for row in doctors_data}
 
     # Nurses
     nurses_data = []
@@ -277,11 +279,33 @@ with open('load.sql', 'w', encoding='utf-8') as f:
     hosp_data = []
     icd_codes = [r[1] for r in icd10_ref]
     ken_codes = [r[1] for r in ken_ref]
+    all_categories = sorted(list(set(c[:3] for c in icd_codes if len(c) >= 3)))
+    target_categories = all_categories[:3]
+    
+    counts_2025 = {cat: 0 for cat in target_categories}
+    counts_2026 = {cat: 0 for cat in target_categories}
+
+    random_icd_pool = [c for c in icd_codes if c[:3] not in target_categories]
+
     for i in range(1, NUM_HOSPITALIZATIONS + 1):
         tr = triage_data[i-1]
         p_id, entry = tr[1], tr[4]
         exit_d = entry + timedelta(days=random.randint(1, 15))
-        hosp_data.append([i, p_id, random.randint(1, NUM_BEDS), random.randint(1, NUM_DEPARTMENTS), entry, exit_d, random.choice(icd_codes), random.choice(icd_codes), random.choice(ken_codes), round(random.uniform(500, 5000), 2), i])
+        year = entry.year
+        
+        icd_in = None
+        if year in [2025, 2026]:
+            for cat in target_categories:
+                if (year == 2025 and counts_2025[cat] < 10) or (year == 2026 and counts_2026[cat] < 10):
+                    icd_in = next(c for c in icd_codes if c.startswith(cat))
+                    if year == 2025: counts_2025[cat] += 1
+                    else: counts_2026[cat] += 1
+                    break
+        
+        if not icd_in:
+            icd_in = random.choice(random_icd_pool)
+            
+        hosp_data.append([i, p_id, random.randint(1, NUM_BEDS), random.randint(1, NUM_DEPARTMENTS), entry, exit_d, icd_in, random.choice(icd_codes), random.choice(ken_codes), round(random.uniform(500, 5000), 2), i])
     write_inserts(f, 'Hospitalizations', hosp_data)
 
     # Shifts
@@ -323,7 +347,10 @@ with open('load.sql', 'w', encoding='utf-8') as f:
                 
             end_time = start_time + timedelta(minutes=duration)
             room_id = random.randint(1, NUM_OPERATING_ROOMS)
-            doc_id = random.randint(1, NUM_DOCTORS)
+            if random.random() < 0.35:
+                doc_id = random.randint(1, 5) 
+            else:
+                doc_id = random.randint(1, NUM_DOCTORS)
             
             # Check room conflict
             r_conflict = False
@@ -420,6 +447,7 @@ with open('load.sql', 'w', encoding='utf-8') as f:
 
     # To prevent rest period, consecutive nights, and monthly limit conflicts.
     staff_shifts = []
+    shift_staff = {}
     staff_busy_slots = {} # staff_id -> (last_end_time, consecutive_nights_count)
     staff_monthly_count = {} # staff_id -> {month: count}
 
@@ -427,6 +455,12 @@ with open('load.sql', 'w', encoding='utf-8') as f:
         if st_id <= NUM_DOCTORS: return 15
         if st_id <= NUM_DOCTORS + NUM_NURSES: return 20
         return 25
+
+    def has_supervisor_on_shift(s_id):
+        return any(
+            staff_id <= NUM_DOCTORS and doctor_rank_by_id.get(staff_id) in ['Επιμελητής Α΄', 'Διευθυντής']
+            for staff_id in shift_staff.get(s_id, [])
+        )
 
     def get_shift_times(s_date, stype):
         if hasattr(s_date, 'date'): s_date = s_date.date()
@@ -453,6 +487,10 @@ with open('load.sql', 'w', encoding='utf-8') as f:
             for _ in range(100): # More retries
                 st_id = random.randint(1, NUM_DOCTORS + NUM_NURSES + NUM_ADMINS)
                 
+                # Prevent assigning a resident to a shift without an existing supervisor.
+                if st_id <= NUM_DOCTORS and doctor_rank_by_id.get(st_id) == 'Ειδικευόμενος' and not has_supervisor_on_shift(s_id):
+                    continue
+
                 # Check monthly limit
                 limit = get_max_limit(st_id)
                 current_count = staff_monthly_count.get(st_id, {}).get(month_key, 0)
@@ -474,16 +512,10 @@ with open('load.sql', 'w', encoding='utf-8') as f:
                 staff_busy_slots[st_id] = (s_end, new_night_count)
                 staff_monthly_count.setdefault(st_id, {})[month_key] = current_count + 1
                 staff_shifts.append([st_id, s_id, s_start.strftime('%H:%M'), s_end.strftime('%H:%M'), s_date])
+                shift_staff.setdefault(s_id, []).append(st_id)
                 break
     
     write_inserts(f, 'Staff_Shifts', staff_shifts)
-
-    # Shift Monthly Limits
-    sml_data = []
-    for st_id, months in staff_monthly_count.items():
-        for (year, month), count in months.items():
-            sml_data.append([len(sml_data) + 1, st_id, year, month, count])
-    write_inserts(f, 'Shift_Monthly_Limits', sml_data)
 
     # Medical Act Assistants
     act_assts = []
