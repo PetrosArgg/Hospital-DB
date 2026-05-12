@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="text-align: center; padding: 50px 0;">
+    <h1>Καλώς ήρθατε στο Υγειόπολις</h1>
+</div>
+
+<div class="cards">
+    <div class="card">
+        <h2>Ιατροί</h2>
+        <p>Δείτε τους εγγεγραμμένους ιατρούς και προσθέστε νέο ιατρικό προσωπικό.</p>
+        <a href="{{ url_for('doctors') }}" class="btn" style="display: inline-block; text-decoration: none;">Μετάβαση
+            στους
+            Ιατρούς</a>
+    </div>
+    <div class="card">
+        <h2>Ασθενείς</h2>
+        <p>Διαχειριστείτε τα αρχεία ασθενών, τα προσωπικά στοιχεία και τις ασφαλιστικές πληροφορίες.</p>
+        <a href="{{ url_for('patients') }}" class="btn" style="display: inline-block; text-decoration: none;">Μετάβαση
+            στους
+            Ασθενείς</a>
+    </div>
+    <div class="card">
+        <h2>Queries</h2>
+        <button class="btn" disabled style="background: #ccc; cursor: not-allowed;">Μετάβαση στα Queries</button>
+    </div>
+</div>
+{% endblock %}
