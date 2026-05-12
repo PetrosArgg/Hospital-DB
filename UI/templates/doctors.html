@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="header-section">
+    <h1>Διαχείριση Ιατρών</h1>
+</div>
+
+<div class="form-section">
+    <h2>Προσθήκη Νέου Ιατρού</h2>
+    <form action="{{ url_for('doctors') }}" method="POST">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="first_name">Όνομα</label>
+                <input type="text" id="first_name" name="first_name" required>
+            </div>
+            <div class="form-group">
+                <label for="last_name">Επώνυμο</label>
+                <input type="text" id="last_name" name="last_name" required>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="amka">ΑΜΚΑ (11 ψηφία)</label>
+                <input type="text" id="amka" name="amka" pattern="\d{11}" required title="Απαιτούνται 11 ψηφία">
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="phone">Τηλέφωνο</label>
+                <input type="text" id="phone" name="phone" required>
+            </div>
+            <div class="form-group">
+                <label for="birth_date">Ημερομηνία Γέννησης</label>
+                <input type="date" id="birth_date" name="birth_date" required>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="hire_date">Ημερομηνία Πρόσληψης</label>
+                <input type="date" id="hire_date" name="hire_date" required>
+            </div>
+            <div class="form-group">
+                <label for="license_number">Αριθμός Αδείας</label>
+                <input type="text" id="license_number" name="license_number" required>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="specialty">Ειδικότητα</label>
+                <select id="specialty" name="specialty" required>
+                    <option value="">Επιλέξτε Ειδικότητα</option>
+                    <option value="Καρδιολογία">Καρδιολογία</option>
+                    <option value="Χειρουργική">Χειρουργική</option>
+                    <option value="ΜΕΘ">ΜΕΘ</option>
+                    <option value="Επείγοντα">Επείγοντα</option>
+                    <option value="Παθολογικό">Παθολογικό</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="rank">Βαθμίδα</label>
+                <select id="rank" name="rank" required>
+                    <option value="">Επιλέξτε Βαθμίδα</option>
+                    <option value="Ειδικευόμενος">Ειδικευόμενος</option>
+                    <option value="Επιμελητής Β΄">Επιμελητής Β΄</option>
+                    <option value="Επιμελητής Α΄">Επιμελητής Α΄</option>
+                    <option value="Διευθυντής">Διευθυντής</option>
+                </select>
+            </div>
+        </div>
+        <button type="submit" class="btn">Εγγραφή Ιατρού</button>
+    </form>
+</div>
+
+<h2>Λίστα Ιατρών</h2>
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Επώνυμο</th>
+                <th>Όνομα</th>
+                <th>Ειδικότητα</th>
+                <th>Βαθμίδα</th>
+                <th>Αρ. Αδείας</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for doctor in doctors %}
+            <tr>
+                <td>{{ doctor.last_name }}</td>
+                <td>{{ doctor.first_name }}</td>
+                <td>{{ doctor.specialty }}</td>
+                <td>{{ doctor.rank }}</td>
+                <td>{{ doctor.license_number }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" style="text-align: center;">Δεν βρέθηκαν ιατροί.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
