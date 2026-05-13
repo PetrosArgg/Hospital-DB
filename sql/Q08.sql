@@ -33,16 +33,18 @@ FROM Staff s
 LEFT JOIN Doctors d ON s.id = d.staff_id
 LEFT JOIN Nurses n ON s.id = n.staff_id
 LEFT JOIN Administrative_Staff a ON s.id = a.staff_id
-JOIN Departments dep ON dep.name = 'Χειρουργική'
+JOIN Departments dep ON dep.name = '...'
 WHERE s.active = TRUE
-    AND (EXISTS (SELECT 1 FROM Doctor_Departments dd
-                    WHERE dd.doctor_id = s.id AND dd.department_id = dep.id))
-         OR n.department_id = dep.id
-         OR a.department_id = dep.id
+    AND (
+        EXISTS (SELECT 1 FROM Doctor_Departments dd
+                    WHERE dd.doctor_id = s.id AND dd.department_id = dep.id)
+         OR (n.department_id = dep.id)
+         OR (a.department_id = dep.id)
+         )
     AND s.id NOT IN (
         SELECT ss.staff_id
         FROM Staff_Shifts ss
         JOIN Shifts sh ON ss.shift_id = sh.id
-        WHERE sh.shift_date = '2026-05-1' AND sh.department_id = dep.id
+        WHERE sh.shift_date = '2026-05-01' AND sh.department_id = dep.id
     )
 ORDER BY s.staff_type, s.last_name, s.first_name;
