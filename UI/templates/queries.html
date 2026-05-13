@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="query-layout">
+    <aside class="query-sidebar">
+        <h3>Επιλέξτε Query</h3>
+        <ul class="query-list">
+            {% for q_id, info in queries.items() %}
+            <li class="{% if selected_id == q_id %}active{% endif %}">
+                <a href="{{ url_for('queries', id=q_id) }}">
+                    <span class="q-badge">{{ q_id }}</span>
+                    <span class="q-title">{{ info.title }}</span>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </aside>
+
+    <section class="query-main">
+        {% if selected_id %}
+        <div class="query-header">
+            <h2>{{ queries[selected_id].title }} ({{ selected_id }})</h2>
+            <p class="query-description">{{ queries[selected_id].description }}</p>
+        </div>
+
+        <form method="POST" class="query-form-modern">
+            <input type="hidden" name="query_id" value="{{ selected_id }}">
+
+            {% if queries[selected_id].params %}
+            <div class="params-grid">
+                {% for param in queries[selected_id].params %}
+                <div class="form-group">
+                    <label for="{{ param.name }}">{{ param.label }}</label>
+                    {% if param.type == 'select' %}
+                    <select name="{{ param.name }}" id="{{ param.name }}" class="form-control">
+                        {% if param.options_key == 'departments' %}
+                        {% for dept in departments %}
+                        <option value="{{ dept }}">{{ dept }}</option>
+                        {% endfor %}
+                        {% elif param.options_key == 'specialties' %}
+                        {% for spec in specialties %}
+                        <option value="{{ spec }}">{{ spec }}</option>
+                        {% endfor %}
+                        {% endif %}
+                    </select>
+                    {% else %}
+                    <input type="{{ param.type }}" name="{{ param.name }}" id="{{ param.name }}"
+                        placeholder="{{ param.placeholder }}" value="{{ param.default }}" class="form-control">
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div style="margin-top: 20px;">
+                <button type="submit" class="btn btn-primary btn-large">
+                    <i class="icon-play"></i> Εκτέλεση
+                </button>
+            </div>
+        </form>
+
+        {% if results is not none %}
+        <div class="results-section">
+            <div class="results-header">
+                <h3>Αποτελέσματα Αναζήτησης</h3>
+                <span class="results-count">{{ results|length }} εγγραφές βρέθηκαν</span>
+            </div>
+
+            {% if results %}
+            <div class="table-container shadow-sm">
+                <table>
+                    <thead>
+                        <tr>
+                            {% for header in headers %}
+                            <th>{{ header }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in results %}
+                        <tr>
+                            {% for header in headers %}
+                            <td>{{ row[header] }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">Δεν βρέθηκαν αποτελέσματα για τις επιλεγμένες παραμέτρους.</div>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="query-placeholder">
+            <p>Επιλέξτε μια αναφορά από την αριστερή λίστα για να ξεκινήσετε.</p>
+        </div>
+        {% endif %}
+    </section>
+</div>
+
+<style>
+    .query-form-modern {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+        margin-bottom: 30px;
+    }
+
+    .params-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 20px;
+    }
+
+    .btn-large {
+        padding: 12px 30px;
+        font-size: 1.1em;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .results-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #eee;
+    }
+
+    .results-count {
+        background: var(--accent-color);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85em;
+        font-weight: bold;
+    }
+
+    .shadow-sm {
+        box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075) !important;
+    }
+
+    .placeholder-icon {
+        font-size: 80px;
+        margin-bottom: 20px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+    }
+
+    .form-control:focus {
+        border-color: var(--accent-color);
+        outline: 0;
+        box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+    }
+</style>
+{% endblock %}
