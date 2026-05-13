@@ -49,31 +49,25 @@ Welcome to the **Υγειόπολης** Hospital Management Database! This proje
 ## Setup
 
 1. **Clone the repository**:
-
-   ```bash
+```bash
    git clone https://github.com/PetrosArgg/Hospital-DB.git
    cd Hospital-DB
-   ```
+```
 
-2. **Set up the MariaDB database**:
+2. **Initialize the database**:
+   Import `install.sql` to create all tables, constraints, and triggers. To also load sample data, run `load.sql` as well.
+```bash
+   mysql -u root -p hospitaldb < install.sql
+   mysql -u root -p hospitaldb < load.sql
+```
 
-   Create a MariaDB database and import the `install.sql` file to set up all tables, constraints, and triggers. Optionally, import `load.sql` to populate the database with dummy data.
-
-   ```bash
-   mysql -u root -p ygeiopolis < install.sql
-   mysql -u root -p ygeiopolis < load.sql
-   ```
-
-3. **Install the required Python libraries**:
-
-   ```bash
+3. **Install dependencies**:
+```bash
    pip install -r requirements.txt
-   ```
+```
 
-4. **Run the app**:
-
-   ```bash
+4. **Launch the app**:
+```bash
    python app.py
-   ```
-
-   Open your browser and visit `http://127.0.0.1:5000` to start interacting with our hospital database.
+```
+   The app will be available at `http://127.0.0.1:5000`.
