@@ -185,3 +185,135 @@ tr:nth-child(even) {
     margin-top: 0;
     color: var(--primary-color);
 }
+
+/* Query Runner Layout */
+.query-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 30px;
+    margin-top: 20px;
+}
+
+.query-sidebar {
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    height: fit-content;
+    position: sticky;
+    top: 20px;
+}
+
+.query-sidebar h3 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--accent-color);
+    color: var(--primary-color);
+}
+
+.query-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.query-list li {
+    margin-bottom: 5px;
+}
+
+.query-list a {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    text-decoration: none;
+    color: var(--secondary-color);
+    border-radius: 4px;
+    transition: background 0.3s;
+}
+
+.query-list a:hover {
+    background: #f0f7ff;
+}
+
+.query-list li.active a {
+    background: var(--accent-color);
+    color: white;
+}
+
+.q-badge {
+    font-weight: bold;
+    min-width: 40px;
+    background: rgba(0,0,0,0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 10px;
+    text-align: center;
+}
+
+.query-main {
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 30px;
+    min-height: 500px;
+}
+
+.query-header h2 {
+    margin-top: 0;
+    color: var(--primary-color);
+}
+
+.query-description {
+    font-style: italic;
+    color: #666;
+    background: #f9f9f9;
+    padding: 15px;
+    border-left: 4px solid var(--accent-color);
+    margin-bottom: 25px;
+}
+
+.query-form {
+    margin-bottom: 30px;
+}
+
+#sql_code {
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 14px;
+    background: #282c34;
+    color: #abb2bf;
+    padding: 15px;
+    border-radius: 4px;
+    resize: vertical;
+}
+
+.results-section {
+    margin-top: 40px;
+    border-top: 1px solid #eee;
+    padding-top: 20px;
+}
+
+.results-count {
+    font-size: 0.9em;
+    color: #888;
+    margin-top: 10px;
+}
+
+.query-placeholder {
+    text-align: center;
+    padding: 50px 0;
+    color: #999;
+}
+
+.query-placeholder img {
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+@media (max-width: 992px) {
+    .query-layout {
+        grid-template-columns: 1fr;
+    }
+    .query-sidebar {
+        position: static;
+    }
+}

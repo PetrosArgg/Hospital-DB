@@ -13,6 +13,93 @@ db_config = {
     'database': 'hospitaldb'
 }
 
+QUERIES_INFO = {
+    'Q1': {
+        'title': 'Έσοδα ανά Τμήμα & Έτος',
+        'description': 'Συνολικά έσοδα του νοσοκομείου ανά τμήμα και ανά έτος, με ανάλυση ανά ΚΕΝ κωδικό και κατανομή νοσηλειών ανά ασφαλιστικό φορέα.',
+        'file': 'sql/Q1.sql'
+    },
+    'Q2': {
+        'title': 'Ιατροί ανά Ειδικότητα',
+        'description': 'Βρείτε όλους τους ιατρούς που ανήκουν σε μια συγκεκριμένη ειδικότητα, με ένδειξη αν είχαν εφημερία το τρέχον έτος.',
+        'file': 'sql/Q2.sql',
+        'params': [
+            {'name': 'specialty', 'label': 'Ειδικότητα', 'type': 'select', 'options_key': 'specialties'}
+        ]
+    },
+    'Q3': {
+        'title': 'Πολλαπλές Νοσηλείες',
+        'description': 'Ασθενείς που έχουν νοσηλευτεί περισσότερες από 3 φορές στο ίδιο τμήμα.',
+        'file': 'sql/Q3.sql'
+    },
+    'Q4': {
+        'title': 'Αξιολόγηση Ιατρού',
+        'description': 'Μέσος όρος αξιολογήσεων των ασθενών για έναν συγκεκριμένο ιατρό.',
+        'file': 'sql/Q4.sql',
+        'params': [
+            {'name': 'doctor_id', 'label': 'ID Ιατρού', 'type': 'number', 'placeholder': 'π.χ. 1', 'default': '1'}
+        ]
+    },
+    'Q5': {
+        'title': 'Νέοι Χειρουργοί (<35)',
+        'description': 'Νέοι ιατροί με τις περισσότερες χειρουργικές επεμβάσεις.',
+        'file': 'sql/Q5.sql'
+    },
+    'Q7': {
+        'title': 'Αλλεργίες ανά Δραστική Ουσία',
+        'description': 'Αριθμός ασθενών με αλλεργία και αριθμός φαρμάκων ανά δραστική ουσία.',
+        'file': 'sql/Q7.sql'
+    },
+    'Q8': {
+        'title': 'Μη Προγραμματισμένο Προσωπικό',
+        'description': 'Προσωπικό χωρίς εφημερία σε συγκεκριμένη ημερομηνία και τμήμα.',
+        'file': 'sql/Q8.sql',
+        'params': [
+            {'name': 'shift_date', 'label': 'Ημερομηνία', 'type': 'date', 'default': '2026-05-01'},
+            {'name': 'dept_name', 'label': 'Τμήμα', 'type': 'select', 'options_key': 'departments'}
+        ]
+    },
+    'Q9': {
+        'title': 'Σταθερή Διάρκεια Νοσηλείας',
+        'description': 'Ασθενείς που νοσηλεύτηκαν τον ίδιο αριθμό ημερών.',
+        'file': 'sql/Q9.sql'
+    },
+    'Q10': {
+        'title': 'Top-3 Συνδυασμοί Φαρμάκων',
+        'description': 'Top-3 ζεύγη δραστικών ουσιών που συνταγογραφήθηκαν ταυτόχρονα.',
+        'file': 'sql/Q10.sql'
+    },
+    'Q11': {
+        'title': 'Ιατροί με Χαμηλή Συμμετοχή',
+        'description': 'Ιατροί με τουλάχιστον 5 λιγότερες επεμβάσεις από τον κορυφαίο.',
+        'file': 'sql/Q11.sql'
+    },
+    'Q12': {
+        'title': 'Απαιτήσεις Προσωπικού ανά Εβδομάδα',
+        'description': 'Αριθμός προσωπικού ανά τμήμα και βάρδια για συγκεκριμένη εβδομάδα.',
+        'file': 'sql/Q12.sql',
+        'params': [
+            {'name': 'start_date', 'label': 'Από Ημερομηνία', 'type': 'date', 'default': '2026-05-04'},
+            {'name': 'end_date', 'label': 'Έως Ημερομηνία', 'type': 'date', 'default': '2026-05-10'}
+        ]
+    },
+    'Q13': {
+        'title': 'Ιεραρχία Εποπτείας',
+        'description': 'Ιεραρχία εποπτείας από επόπτη έως Διευθυντή.',
+        'file': 'sql/Q13.sql'
+    },
+    'Q14': {
+        'title': 'Σταθερότητα ICD-10 ανά Έτος',
+        'description': 'Κατηγορίες ICD-10 με ίδιο αριθμό εισαγωγών σε δύο συνεχόμενα έτη.',
+        'file': 'sql/Q14.sql'
+    },
+    'Q15': {
+        'title': 'Ανάλυση Triage',
+        'description': 'Κατανομή triage ανά επίπεδο επείγοντος.',
+        'file': 'sql/Q15.sql'
+    }
+}
+
 def get_db_connection():
     try:
         conn = mysql.connector.connect(**db_config)
@@ -142,6 +229,88 @@ def patients():
     cursor.close()
     conn.close()
     return render_template('patients.html', patients=patients_list)
+
+@app.route('/queries', methods=['GET', 'POST'])
+def queries():
+    conn = get_db_connection()
+    if not conn:
+        flash("Η σύνδεση με τη βάση δεδομένων απέτυχε!", "danger")
+        return redirect(url_for('index'))
+
+    cursor = conn.cursor(dictionary=True)
+    
+    # Fetch dynamic options
+    departments = []
+    specialties = []
+    try:
+        cursor.execute("SELECT DISTINCT name FROM Departments ORDER BY name")
+        departments = [row['name'] for row in cursor.fetchall()]
+        
+        cursor.execute("SELECT DISTINCT specialty FROM Doctors WHERE specialty IS NOT NULL ORDER BY specialty")
+        specialties = [row['specialty'] for row in cursor.fetchall()]
+    except Error as e:
+        print(f"Error fetching dynamic options: {e}")
+
+    query_id = request.args.get('id')
+    results = None
+    headers = []
+    
+    if request.method == 'POST':
+        query_id = request.form.get('query_id')
+        if query_id and query_id in QUERIES_INFO:
+            try:
+                # Read SQL from file
+                import os
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                project_root = os.path.dirname(current_dir)
+                file_path = os.path.join(project_root, QUERIES_INFO[query_id]['file'])
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    sql_code = f.read()
+
+                # Handle Parameters
+                params_values = []
+                if query_id == 'Q2':
+                    val = request.form.get('specialty', 'Χειρουργική')
+                    sql_code = sql_code.replace("'Χειρουργική'", "%s")
+                    params_values.append(val)
+                elif query_id == 'Q4':
+                    val = request.form.get('doctor_id', '1')
+                    sql_code = sql_code.replace("= 1", "= %s")
+                    params_values.append(val)
+                elif query_id == 'Q8':
+                    date_val = request.form.get('shift_date', '2026-05-1')
+                    dept_val = request.form.get('dept_name', 'Χειρουργική')
+                    sql_code = sql_code.replace("'2026-05-1'", "%s").replace("'Χειρουργική'", "%s")
+                    params_values.extend([dept_val, date_val])
+                elif query_id == 'Q12':
+                    start_val = request.form.get('start_date', '2026-05-04')
+                    end_val = request.form.get('end_date', '2026-05-10')
+                    sql_code = sql_code.replace("'2026-05-04'", "%s").replace("'2026-05-10'", "%s")
+                    params_values.extend([start_val, end_val, start_val, end_val, start_val, end_val])
+
+                cursor = conn.cursor(dictionary=True)
+                if params_values:
+                    cursor.execute(sql_code, params_values)
+                else:
+                    cursor.execute(sql_code)
+                
+                results = cursor.fetchall()
+                if results:
+                    headers = results[0].keys()
+                cursor.close()
+            except Error as e:
+                flash(f"Σφάλμα SQL: {e}", "danger")
+            except Exception as e:
+                flash(f"Παρουσιάστηκε σφάλμα: {e}", "danger")
+
+    conn.close()
+    return render_template('queries.html', 
+                           queries=QUERIES_INFO, 
+                           selected_id=query_id, 
+                           results=results,
+                           headers=headers,
+                           departments=departments,
+                           specialties=specialties)
 
 if __name__ == '__main__':
     app.run(debug=True)

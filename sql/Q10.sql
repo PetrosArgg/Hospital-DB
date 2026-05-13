@@ -14,7 +14,7 @@ SELECT
     COUNT(*) AS frequency
 FROM prescriptioned_substances ps1 JOIN prescriptioned_substances ps2
 ON ps1.hospitalization_id = ps2.hospitalization_id
-AND ps1.patiend_id = ps2.patiend_id
+AND ps1.patient_id = ps2.patient_id
 AND ps1.substance_id < ps2.substance_id
 GROUP BY
     ps1.substance_id, ps1.substance_name, ps2.substance_id, ps2.substance_name
