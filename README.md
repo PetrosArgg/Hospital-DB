@@ -3,14 +3,14 @@
 
 Welcome to the **Υγειόπολης** Hospital Management Database! This project models a fully functional general hospital, covering everything from patient admissions and staff scheduling to lab exams, medical acts, and billing. This repository contains all the necessary files for setting up and running the Υγειόπολης database, along with an interactive web app for exploring and visualizing the data.
 
-## Directory Features
+## Overview
 
 - **Database Management**: Uses MariaDB to store and manage all hospital data reliably.
 - **Data Generation**: Includes a Python script using Faker to create and load dummy data for testing and development.
 - **Triggers**: Uses MariaDB triggers to automatically enforce business rules and keep the data consistent.
 - **Web Interface**: A simple web app to browse hospital data, run queries, and view results.
 
-## Database Features
+## Core Features
 
 - **Patient Management**: Store detailed information about patients, including personal data, allergies, triage status, and emergency contacts.
 - **Staff Management**: Manage medical staff and admins in a role-based hierarchy, including a supervision chain among doctors.
@@ -18,7 +18,7 @@ Welcome to the **Υγειόπολης** Hospital Management Database! This proje
 - **Shift Scheduling**: Record and validate staff shift assignments, with triggers automatically checking staffing and rest-period rules.
 - **Billing System**: Calculate hospitalization costs based on KEN rates, including extra daily charges for extended stays.
 
-## Assumptions
+## Design Decisions
 
 1. Patient age is not stored directly - it is computed dynamically from `birth_date`.
 2. All staff share a common base record, while doctors, nurses, and admins each have their own table for role-specific data.
@@ -28,7 +28,7 @@ Welcome to the **Υγειόπολης** Hospital Management Database! This proje
 6. Shift rules are enforced automatically via triggers: every shift needs at least 3 doctors, 6 nurses, and 2 admins. Residents can't be scheduled without a senior doctor present. Each staff member is subject to monthly shift caps, an 8-hour minimum rest between shifts, and no more than 3 night shifts in a row.
 7. Emergency contacts are stored in a separate table, apart from the patient record.
 
-## Technical Details
+## Implementation
 
 ### Technologies Used
 
@@ -46,7 +46,7 @@ Welcome to the **Υγειόπολης** Hospital Management Database! This proje
 - **mysql-connector-python 8.4.0**
 - **Faker 25.8.0**
 
-## Installation
+## Setup
 
 1. **Clone the repository**:
 
