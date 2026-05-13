@@ -30,21 +30,13 @@ Welcome to the **Υγειόπολης** Hospital Management Database! This proje
 
 ## Implementation
 
-### Technologies Used
-
-- **MariaDB**:  Handles all data storage and management. It is also used to run the project's SQL queries.
-- **Python**: Used for developing the application and generating dummy data through the `fake_data.py` script.
-- **Flask**: The web server was created using Flask, a micro web framework for Python.
-- **Jinja2**: Used to dynamically generate HTML pages on the server side.
-- **HTML/CSS**: Used to develop the user interface.
-
-### Tech Stack
-
-- **Python 3.14.3**
-- **Flask 3.0.3**
-- **MariaDB 10.4.32**
-- **mysql-connector-python 8.4.0**
-- **Faker 25.8.0**
+- **MariaDB 10.4.32** — Handles all data storage and management, and is used to run the project's SQL queries.
+- **Python 3.14.3** — Used for developing the application and generating dummy data through the `fake_data.py` script.
+- **Flask 3.0.3** — The web server framework.
+- **Jinja2** — Used to dynamically generate HTML pages on the server side.
+- **HTML/CSS** — Used to develop the user interface.
+- **mysql-connector-python 8.4.0** — Python connector for MariaDB.
+- **Faker 25.8.0** — Used to generate realistic dummy data.
 
 ## Setup
 
