@@ -7,7 +7,7 @@ Welcome to the **Υγειόπολης** Hospital Management Database! This proje
 
 - **Database Management**: Uses MariaDB to store and manage all hospital data reliably.
 - **Data Generation**: Real-world reference data (KEN codes, ICD-10 diagnoses, lab exams, medical acts and medications) is imported into the database from provided CSV files using Python. All the other data is generated and loaded using Python's Faker library.
-- **Images**: All staff and facility photos are sourced from Pexels, a free stock photo platform with copyright-free content.
+- **Images**: All staff and facility photos were downloaded from Pexels, a free stock photo platform with copyright-free content, using Python.
 - **Triggers**: Uses MariaDB triggers to automatically enforce business rules and keep the data consistent.
 - **Web Interface**: A simple web app to browse hospital data, run queries, and view results.
 
