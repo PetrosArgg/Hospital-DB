@@ -9,4 +9,3 @@ LEFT JOIN Medication_Substances m ON s.id = m.substance_id
 GROUP BY
     s.id, s.substance_name
 ORDER BY num_allergic_patients DESC;
-
