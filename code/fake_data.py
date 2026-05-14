@@ -30,8 +30,8 @@ def escape_str(val):
         return str(val)
     if isinstance(val, bool):
         return "TRUE" if val else "FALSE"
-    # Escape single quotes for SQL
-    return f"'{str(val).replace(chr(39), chr(39)+chr(39))}'"
+    # Escape backslashes and single quotes for SQL
+    return f"'{str(val).replace('\\', '\\\\').replace(chr(39), chr(39)+chr(39))}'"
 
 def write_inserts(f, table_name, data):
     if not data: return
@@ -94,19 +94,22 @@ def load_meds_and_subs():
             for row in reader:
                 if len(row) < 2: continue
                 prod_name = row[0].strip()
-                sub_name = row[1].strip()
+                sub_raw = row[1].strip()
                 if not prod_name or 'Product name' in prod_name: continue
                 
-                if sub_name and sub_name not in subs_map:
-                    subs_map[sub_name] = sub_id_counter
-                    sub_id_counter += 1
-                
                 meds.append([med_id_counter, prod_name])
-                if sub_name:
-                    bridge.append([med_id_counter, subs_map[sub_name]])
+                
+                if sub_raw:
+                    # Split by | for multiple substances
+                    sub_names = [s.strip() for s in sub_raw.split('|') if s.strip()]
+                    for sn in sub_names:
+                        if sn not in subs_map:
+                            subs_map[sn] = sub_id_counter
+                            sub_id_counter += 1
+                        bridge.append([med_id_counter, subs_map[sn]])
                 
                 med_id_counter += 1
-                if med_id_counter > 2000: break # Cap for speed/size
+
     else:
         subs_map = {'Paracetamol': 1}
         meds = [[1, 'Panadol']]
