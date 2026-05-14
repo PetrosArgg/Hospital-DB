@@ -1,3 +1,4 @@
+EXPLAIN ANALYZE
 SELECT 
     s.last_name AS 'Επώνυμο Ιατρού',
     s.first_name AS 'Όνομα Ιατρού',

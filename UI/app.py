@@ -35,7 +35,7 @@ QUERIES_INFO = {
     'Q4': {
         'title': 'Αξιολόγηση Ιατρού',
         'description': 'Μέσος όρος αξιολογήσεων των ασθενών για έναν συγκεκριμένο ιατρό.',
-        'file': 'sql/Q4.sql',
+        'file': 'sql/Q4a.sql',
         'params': [
             {'name': 'doctor_id', 'label': 'ID Ιατρού', 'type': 'number', 'placeholder': 'π.χ. 1', 'default': '1'}
         ]
@@ -45,15 +45,23 @@ QUERIES_INFO = {
         'description': 'Νέοι ιατροί με τις περισσότερες χειρουργικές επεμβάσεις.',
         'file': 'sql/Q5.sql'
     },
+    'Q6': {
+        'title': 'Ιστορικό Νοσηλειών Ασθενή',
+        'description': 'Ιστορικό νοσηλειών για συγκεκριμένο ασθενή, με διαγνώσεις, κόστος και αξιολογήσεις.',
+        'file': 'sql/Q06a.sql',
+        'params': [
+            {'name': 'patient_id', 'label': 'ID Ασθενή', 'type': 'number', 'placeholder': 'π.χ. 1', 'default': '1'}
+        ]
+    },
     'Q7': {
         'title': 'Αλλεργίες ανά Δραστική Ουσία',
         'description': 'Αριθμός ασθενών με αλλεργία και αριθμός φαρμάκων ανά δραστική ουσία.',
-        'file': 'sql/Q7.sql'
+        'file': 'sql/Q07.sql'
     },
     'Q8': {
         'title': 'Μη Προγραμματισμένο Προσωπικό',
         'description': 'Προσωπικό χωρίς εφημερία σε συγκεκριμένη ημερομηνία και τμήμα.',
-        'file': 'sql/Q8.sql',
+        'file': 'sql/Q08.sql',
         'params': [
             {'name': 'shift_date', 'label': 'Ημερομηνία', 'type': 'date', 'default': '2026-05-01'},
             {'name': 'dept_name', 'label': 'Τμήμα', 'type': 'select', 'options_key': 'departments'}
@@ -62,7 +70,7 @@ QUERIES_INFO = {
     'Q9': {
         'title': 'Σταθερή Διάρκεια Νοσηλείας',
         'description': 'Ασθενείς που νοσηλεύτηκαν τον ίδιο αριθμό ημερών.',
-        'file': 'sql/Q9.sql'
+        'file': 'sql/Q09.sql'
     },
     'Q10': {
         'title': 'Top-3 Συνδυασμοί Φαρμάκων',
@@ -267,6 +275,9 @@ def queries():
                 with open(file_path, 'r', encoding='utf-8') as f:
                     sql_code = f.read()
 
+                # Remove EXPLAIN ANALYZE if it exists in the assignment files so the UI doesn't crash
+                sql_code = sql_code.replace("EXPLAIN ANALYZE", "").replace("EXPLAIN", "")
+
                 # Handle Parameters
                 params_values = []
                 if query_id == 'Q2':
@@ -275,6 +286,10 @@ def queries():
                     params_values.append(val)
                 elif query_id == 'Q4':
                     val = request.form.get('doctor_id', '1')
+                    sql_code = sql_code.replace("= 1", "= %s")
+                    params_values.append(val)
+                elif query_id == 'Q6':
+                    val = request.form.get('patient_id', '1')
                     sql_code = sql_code.replace("= 1", "= %s")
                     params_values.append(val)
                 elif query_id == 'Q8':
