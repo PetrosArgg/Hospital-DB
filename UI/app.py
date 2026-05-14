@@ -120,6 +120,14 @@ def get_db_connection():
 def index():
     return render_template('index.html')
 
+@app.route('/docs/<path:filename>')
+def serve_docs(filename):
+    import os
+    from flask import send_from_directory
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    docs_dir = os.path.join(project_root, 'docs')
+    return send_from_directory(docs_dir, filename)
+
 @app.route('/doctors', methods=['GET', 'POST'])
 def doctors():
     conn = get_db_connection()
@@ -142,6 +150,9 @@ def doctors():
             license_number = request.form['license_number']
             specialty = request.form['specialty']
             rank = request.form['rank']
+            supervisor_id = request.form.get('supervisor_id')
+            if not supervisor_id:
+                supervisor_id = None
 
             # 1. Insert into Staff
             cursor.execute("""
@@ -153,9 +164,9 @@ def doctors():
             
             # 2. Insert into Doctors
             cursor.execute("""
-                INSERT INTO Doctors (staff_id, license_number, specialty, rank)
-                VALUES (%s, %s, %s, %s)
-            """, (staff_id, license_number, specialty, rank))
+                INSERT INTO Doctors (staff_id, license_number, specialty, rank, supervisor_id)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (staff_id, license_number, specialty, rank, supervisor_id))
             
             conn.commit()
             flash("Ο ιατρός προστέθηκε επιτυχώς!", "success")
@@ -170,9 +181,10 @@ def doctors():
     # Doctor list
     try:
         cursor.execute("""
-            SELECT s.first_name, s.last_name, d.specialty, d.rank, d.license_number
+            SELECT s.first_name, s.last_name, d.specialty, d.rank, d.license_number, i.image_url
             FROM Staff s
             JOIN Doctors d ON s.id = d.staff_id
+            LEFT JOIN Images i ON d.staff_id = i.doctor_id
             WHERE s.staff_type = 'doctor'
             ORDER BY s.last_name ASC
         """)
@@ -181,9 +193,22 @@ def doctors():
         flash(f"Σφάλμα κατά την ανάκτηση ιατρών: {e}", "danger")
         doctors_list = []
     
+    # Fetch potential supervisors
+    try:
+        cursor.execute("""
+            SELECT d.staff_id, s.last_name, s.first_name, d.rank
+            FROM Doctors d
+            JOIN Staff s ON d.staff_id = s.id
+            WHERE d.rank != 'Ειδικευόμενος'
+            ORDER BY s.last_name ASC
+        """)
+        supervisors = cursor.fetchall()
+    except Error as e:
+        supervisors = []
+
     cursor.close()
     conn.close()
-    return render_template('doctors.html', doctors=doctors_list)
+    return render_template('doctors.html', doctors=doctors_list, supervisors=supervisors)
 
 @app.route('/patients', methods=['GET', 'POST'])
 def patients():

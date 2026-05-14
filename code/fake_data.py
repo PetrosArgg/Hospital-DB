@@ -437,15 +437,43 @@ with open('load.sql', 'w', encoding='utf-8') as f:
 
     # Images
     images_data = []
-    for i in range(1, 51):
-        target = random.choice(['doctor', 'nurse', 'admin', 'dept', 'room'])
-        row = [i, f"http://example.com/img{i}.jpg", "Description", None, None, None, None, None]
-        if target == 'doctor': row[3] = random.randint(1, NUM_DOCTORS)
-        elif target == 'nurse': row[4] = random.randint(NUM_DOCTORS+1, NUM_DOCTORS+NUM_NURSES)
-        elif target == 'admin': row[5] = random.randint(NUM_DOCTORS+NUM_NURSES+1, NUM_DOCTORS+NUM_NURSES+NUM_ADMINS)
-        elif target == 'dept': row[6] = random.randint(1, NUM_DEPARTMENTS)
-        else: row[7] = random.randint(1, NUM_OPERATING_ROOMS)
-        images_data.append(row)
+    img_id = 1
+    
+    # Doctors
+    for i in range(1, NUM_DOCTORS + 1):
+        path = f"docs/doctors/doctor_{i}.jpg"
+        if os.path.exists(path):
+            images_data.append([img_id, path, f"Photo of Doctor {i}", i, None, None, None, None])
+            img_id += 1
+
+    # Nurses
+    for i in range(1, NUM_NURSES + 1):
+        path = f"docs/nurses/nurse_{i}.jpg"
+        if os.path.exists(path):
+            images_data.append([img_id, path, f"Photo of Nurse {i}", None, NUM_DOCTORS + i, None, None, None])
+            img_id += 1
+
+    # Admin Staff
+    for i in range(1, NUM_ADMINS + 1):
+        path = f"docs/admins/admin_{i}.jpg"
+        if os.path.exists(path):
+            images_data.append([img_id, path, f"Photo of Admin {i}", None, None, NUM_DOCTORS + NUM_NURSES + i, None, None])
+            img_id += 1
+
+    # Departments
+    for i in range(1, NUM_DEPARTMENTS + 1):
+        path = f"docs/departments/dept_{i}.jpg"
+        if os.path.exists(path):
+            images_data.append([img_id, path, f"Photo of Department {i}", None, None, None, i, None])
+            img_id += 1
+
+    # Operating Rooms
+    for i in range(1, NUM_OPERATING_ROOMS + 1):
+        path = f"docs/rooms/room_{i}.jpg"
+        if os.path.exists(path):
+            images_data.append([img_id, path, f"Photo of Operating Room {i}", None, None, None, None, i])
+            img_id += 1
+
     write_inserts(f, 'Images', images_data)
 
     # To prevent rest period, consecutive nights, and monthly limit conflicts.

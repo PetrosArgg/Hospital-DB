@@ -71,6 +71,17 @@
                 </select>
             </div>
         </div>
+        <div class="form-row">
+            <div class="form-group" style="width: 100%;">
+                <label for="supervisor_id">Επιβλέπων Ιατρός (Απαιτείται για Ειδικευόμενους)</label>
+                <select id="supervisor_id" name="supervisor_id">
+                    <option value="">-- Χωρίς Επιβλέποντα (Για Διευθυντές) --</option>
+                    {% for sup in supervisors %}
+                    <option value="{{ sup.staff_id }}">{{ sup.last_name }} {{ sup.first_name }} ({{ sup.rank }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
         <button type="submit" class="btn">Εγγραφή Ιατρού</button>
     </form>
 </div>
@@ -80,6 +91,7 @@
     <table>
         <thead>
             <tr>
+                <th>Φωτογραφία</th>
                 <th>Επώνυμο</th>
                 <th>Όνομα</th>
                 <th>Ειδικότητα</th>
@@ -90,6 +102,13 @@
         <tbody>
             {% for doctor in doctors %}
             <tr>
+                <td>
+                    {% if doctor.image_url %}
+                    <img src="/{{ doctor.image_url }}" alt="Φωτογραφία" width="50" height="50" style="object-fit: cover; border-radius: 50%;">
+                    {% else %}
+                    <span style="color: #999; font-size: 0.85em;">-</span>
+                    {% endif %}
+                </td>
                 <td>{{ doctor.last_name }}</td>
                 <td>{{ doctor.first_name }}</td>
                 <td>{{ doctor.specialty }}</td>
@@ -98,7 +117,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="5" style="text-align: center;">Δεν βρέθηκαν ιατροί.</td>
+                <td colspan="6" style="text-align: center;">Δεν βρέθηκαν ιατροί.</td>
             </tr>
             {% endfor %}
         </tbody>
