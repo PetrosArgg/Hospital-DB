@@ -41,7 +41,6 @@ def write_inserts(f, table_name, data):
         lines.append("(" + ", ".join(escape_str(v) for v in row) + ")")
     f.write(",\n".join(lines) + ";\n\n")
 
-# --- Reference Data Loading Functions ---
 def load_icd10():
     data = []
     path = 'csv/icd10.csv'
@@ -79,14 +78,13 @@ def load_ken_ref():
     return data
 
 def load_meds_and_subs():
-    subs_map = {} # name -> id
-    meds = [] # [id, product_name]
-    bridge = [] # [med_id, sub_id]
+    subs_map = {} 
+    meds = []
+    bridge = []
     path = 'csv/Medications.csv'
     if os.path.exists(path):
         with open(path, 'r', encoding='utf-8-sig') as f:
             reader = csv.reader(f, delimiter=';')
-            # Skip metadata and header lines (exactly 16 lines for Medications.csv)
             for _ in range(16): next(reader, None)
             
             sub_id_counter = 1
@@ -120,22 +118,34 @@ def load_meds_and_subs():
 
 def load_split_refs(path, target_type):
     data = []
+    cat_norm = {
+        'Α': 'Α. ΠΡΑΞΕΙΣ ΑΙΝΑΙΣΘΗΣΙΑΣ',
+        'Β': 'Β. ΠΡΑΞΕΙΣ ΧΕΙΡΟΥΡΓΙΚΕΣ – ΕΠΕΜΒΑΤΙΚΕΣ – ΕΝΔΟΣΚΟΠΙΚΕΣ',
+        'Γ': 'Γ. ΑΠΕΙΚΟΝΙΣΗ – ΕΠΕΜΒΑΤΙΚΕΣ ΚΑΙ ΘΕΡΑΠΕΥΤΙΚΕΣ ΑΚΤΙΝΙΚΕΣ ΠΡΑΞΕΙΣ',
+        'Δ': 'Δ. ΠΡΑΞΕΙΣ ΒΙΟΠΑΘΟΛΟΓΙΑΣ',
+        'Ε': 'Ε. ΠΡΑΞΕΙΣ ΙΑΤΡΟΔΙΚΑΣΤΙΚΗΣ – ΠΑΘΟΛΟΓΙΚΗΣ ΑΝΑΤΟΜΙΚΗΣ – ΚΥΤΤΑΡΟΛΟΓΙΑΣ'
+    }
+    current_category = cat_norm['Α'] if target_type == 'medact' else cat_norm['Γ']
+
     if os.path.exists(path):
         with open(path, 'r', encoding='utf-8-sig') as f:
             reader = csv.reader(f, delimiter=';')
-            # Skip 3 lines of headers
-            for _ in range(3): next(reader, None) 
-            for i, row in enumerate(reader, 1):
-                if row and len(row) >= 3:
+            for row in reader:
+                if not row: continue
+                
+                first_col = row[0].strip()
+                if len(first_col) >= 2 and first_col[0] in cat_norm and first_col[1] == '.':
+                    if len(first_col) == 2 or first_col[2] == ' ' or not first_col[2].isdigit():
+                        current_category = cat_norm[first_col[0]]
+                
+                if len(row) >= 3:
                     code = row[1].strip()
                     name = row[2].strip()
-                    if not code: continue
-                    if target_type == 'lab':
-                        data.append([i, code, name, "Laboratory"])
-                    else:
-                        data.append([i, code, name, "Χειρουργική"])
+                    if code and any(c.isdigit() for c in code):
+                        data.append([len(data) + 1, code, name, current_category])
     else:
-        data.append([1, 'REF01', 'Default Ref', 'General'])
+        fallback_cat = cat_norm['Α'] if target_type == 'medact' else cat_norm['Γ']
+        data.append([1, 'REF01', 'Default Ref', fallback_cat])
     return data
 
 # --- Main Generation ---
