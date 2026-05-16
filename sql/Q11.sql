@@ -1,10 +1,10 @@
 SELECT
     d.staff_id AS 'ID Ιατρου',
-    s. last_name AS 'Επώνυμο',
+    s.last_name AS 'Επώνυμο',
     s.first_name AS 'Όνομα',
     d.specialty AS 'Ειδικότητα',
     d.rank AS 'Βαθμίδα',
-    COUNT(ma.id) AS 'Επεμβάσεις Τρέχον Έτος'
+    COUNT(ma.id) AS 'Ιατρικές πράξεις τρέχον έτος'
 FROM Doctors d
 JOIN Staff s ON d.staff_id = s.id
 LEFT JOIN Medical_Acts ma
