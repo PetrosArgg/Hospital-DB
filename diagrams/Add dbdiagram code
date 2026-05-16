@@ -1,0 +1,319 @@
+Table Staff {
+  id int [pk, increment]
+  amka char(11) [not null, unique]
+  first_name varchar(50) [not null]
+  last_name varchar(50) [not null]
+  birth_date date [not null]
+  email varchar(255) [not null]
+  phone varchar(15) [not null]
+  hire_date date [not null]
+  staff_type varchar(15) [not null]
+}
+
+Table Doctor {
+  staff_id int [pk]
+  license_number varchar(20) [not null, unique]
+  specialty varchar(50) [null]
+  rank varchar(30) [not null]
+  supervisor_id int [null]
+}
+
+Table Nurse {
+  staff_id int [pk]
+  rank varchar(50) [not null]
+  department_id int [not null]
+}
+
+Table Admin {
+  staff_id int [pk]
+  duty_role varchar(100) [not null]
+  office_location varchar(50) [not null]
+  department_id int [not null]
+}
+
+Table DoctorDepartment {
+  doctor_id int [not null]
+  department_id int [not null]
+  primary key (doctor_id, department_id)
+}
+
+Table Department {
+  id int [pk, increment]
+  bed_count int [not null]
+  name varchar(100) [not null]
+  description text [null]
+  location varchar(100) [null]
+  head_doctor_id int [null]
+  min_doctors int [not null]
+  min_nurses int [not null]
+  min_admins int [not null]
+}
+
+Table Bed {
+  id int [pk, increment]
+  bed_number varchar(20) [not null, unique]
+  department_id int [not null]
+  bed_type varchar(50) [not null]
+  status varchar(50) [not null]
+}
+
+Table Shift {
+  id int [pk, increment]
+  department_id int [not null]
+  shift_type varchar(9) [not null]
+  shift_date date [not null]
+  shift_status varchar(10) [not null]
+}
+
+Table Staff_Shift {
+  staff_id int [not null]
+  shift_id int [not null]
+  start_time time
+  end_time time
+  started_date date
+  primary key (staff_id, shift_id)
+}
+
+Table Shift_Monthly_Limits {
+  id int [pk, increment]
+  staff_id int [not null]
+  ml_year int [not null]
+  ml_month int [not null]
+  ml_num int
+}
+
+Table Patient {
+  id int [pk, increment]
+  amka char(11) [not null, unique]
+  first_name varchar(50) [not null]
+  last_name varchar(50) [not null]
+  father_name varchar(50) [not null]
+  birth_date date [not null]
+  gender varchar(10) [not null]
+  weight decimal(5,2) [not null]
+  height decimal(3,2) [not null]
+  address text [not null]
+  phone varchar(15) [not null]
+  email varchar(255) [null]
+  profession varchar(255) [null]
+  nationality varchar(50) [not null]
+  insurance_provider varchar(100) [not null]
+}
+
+Table EmergencyContact {
+  id int [pk, increment]
+  patient_id int [not null]
+  first_name varchar(50) [not null]
+  last_name varchar(50) [not null]
+  phone varchar(15) [not null]
+  relationship varchar(50) [not null]
+}
+
+Table TriageEntry {
+  id int [pk, increment]
+  patient_id int [not null]
+  nurse_id int [not null]
+  arrival_time datetime [not null]
+  service_time datetime [null]
+  urgency_level int [not null]
+  symptoms text [not null]
+  referral_status varchar(50) [not null]
+}
+
+Table ICD10_Ref {
+  id int [pk, increment]
+  code varchar(100) [not null, unique]
+  description text [not null]
+}
+
+Table KEN_Ref {
+  id int [pk, increment]
+  code varchar(100) [not null, unique]
+  base_cost decimal(10,2) [not null]
+  mdn_days int [not null]
+}
+
+Table Hospitalization {
+  id int [pk, increment]
+  patient_id int [not null]
+  bed_id int [not null]
+  department_id int [not null]
+  entry_date datetime [not null]
+  exit_date datetime [null]
+  icd10_entry_code varchar(100) [null]
+  icd10_exit_code varchar(100) [null]
+  ken_code varchar(100) [null]
+  total_cost decimal(10,2) [null]
+  triage_id int [not null]
+}
+
+Table LabExam {
+  id int [pk, increment]
+  hospitalization_id int [not null]
+  doctor_id int [null]
+  code varchar(100) [not null]
+  exam_date datetime [not null]
+  result text [null]
+  result_value decimal(10,3) [null]
+  result_unit varchar(20) [null]
+  cost decimal(10,2) [not null]
+}
+
+Table LabExam_Ref {
+  id int [pk, increment]
+  code varchar(100) [not null, unique]
+  name text [not null]
+  category varchar(255) [not null]
+}
+
+Table MedicalAct {
+  id int [pk, increment]
+  hospitalization_id int [not null]
+  act_code varchar(100) [not null]
+  duration_minutes int [not null]
+  cost decimal(10,2) [not null]
+  main_doctor_id int [not null]
+  room_id int [not null]
+  scheduled_time datetime [not null]
+}
+
+Table MedicalAct_Ref {
+  id int [pk, increment]
+  code varchar(100) [not null, unique]
+  name text [not null]
+  category varchar(255) [not null]
+}
+
+Table OperatingRoom {
+  id int [pk, increment]
+  name varchar(50) [not null]
+  room_type text [not null]
+}
+
+Table Medical_Act_Assistant {
+  act_id int [not null]
+  staff_id int [not null]
+  primary key (act_id, staff_id)
+}
+
+Table Medication {
+  id int [pk, increment]
+  product_name text
+}
+
+Table ActiveSubstance {
+  id int [pk, increment]
+  substance_name text
+}
+
+Table MedicationSubstance {
+  medication_id int [not null]
+  substance_id int [not null]
+  primary key (medication_id, substance_id)
+}
+
+Table Allergy {
+  patient_id int [not null]
+  substance_id int [not null]
+  primary key (patient_id, substance_id)
+}
+
+Table Prescription {
+  id int [pk, increment]
+  doctor_id int [not null]
+  patient_id int [not null]
+  medication_id int [not null]
+  hospitalization_id int [not null]
+  start_date date [not null]
+  dosage varchar(50) [null]
+  frequency varchar(50) [null]
+  end_date date [null]
+}
+
+Table Rating {
+  hospitalization_id int [pk]
+  nursing_care_quality tinyint [not null]
+  cleanliness tinyint [not null]
+  food_quality tinyint [not null]
+  overall_experience tinyint [not null]
+}
+
+Table DoctorRating {
+  hospitalization_id int [not null]
+  doctor_id int [not null]
+  medical_care_quality tinyint [not null]
+  primary key (hospitalization_id, doctor_id)
+}
+
+Table Image {
+  id int [pk, increment]
+  description text [null]
+  image_url varchar(255) [not null]
+  doctor_id int [null]
+  nurse_id int [null]
+  admin_id int [null]
+  department_id int [null]
+  room_id int [null]
+}
+
+Ref: Doctor.staff_id - Staff.id
+Ref: Nurse.staff_id - Staff.id
+Ref: Admin.staff_id - Staff.id
+Ref: Doctor.supervisor_id > Doctor.staff_id
+
+Ref: Department.head_doctor_id > Doctor.staff_id
+Ref: Bed.department_id > Department.id
+Ref: Nurse.department_id > Department.id
+Ref: Admin.department_id > Department.id
+
+Ref: DoctorDepartment.doctor_id > Doctor.staff_id
+Ref: DoctorDepartment.department_id > Department.id
+
+Ref: Shift.department_id > Department.id
+Ref: Staff_Shift.staff_id > Staff.id
+Ref: Staff_Shift.shift_id > Shift.id
+Ref: Shift_Monthly_Limits.staff_id > Staff.id
+
+Ref: EmergencyContact.patient_id > Patient.id
+
+Ref: TriageEntry.patient_id > Patient.id
+Ref: TriageEntry.nurse_id > Nurse.staff_id
+Ref: Hospitalization.triage_id - TriageEntry.id
+Ref: Hospitalization.patient_id > Patient.id
+Ref: Hospitalization.bed_id > Bed.id
+Ref: Hospitalization.department_id > Department.id
+Ref: Hospitalization.icd10_entry_code > ICD10_Ref.code
+Ref: Hospitalization.icd10_exit_code > ICD10_Ref.code
+Ref: Hospitalization.ken_code > KEN_Ref.code
+
+Ref: LabExam.hospitalization_id > Hospitalization.id
+Ref: LabExam.doctor_id > Doctor.staff_id
+Ref: LabExam.code > LabExam_Ref.code
+
+Ref: MedicalAct.hospitalization_id > Hospitalization.id
+Ref: MedicalAct.main_doctor_id > Doctor.staff_id
+Ref: MedicalAct.room_id > OperatingRoom.id
+Ref: MedicalAct.act_code > MedicalAct_Ref.code
+
+Ref: Medical_Act_Assistant.act_id > MedicalAct.id
+Ref: Medical_Act_Assistant.staff_id > Staff.id
+
+Ref: MedicationSubstance.medication_id > Medication.id
+Ref: MedicationSubstance.substance_id > ActiveSubstance.id
+
+Ref: Allergy.patient_id > Patient.id
+Ref: Allergy.substance_id > ActiveSubstance.id
+Ref: Prescription.medication_id > Medication.id
+Ref: Prescription.patient_id > Patient.id
+Ref: Prescription.doctor_id > Doctor.staff_id
+Ref: Prescription.hospitalization_id > Hospitalization.id
+
+Ref: Rating.hospitalization_id - Hospitalization.id
+Ref: DoctorRating.hospitalization_id > Hospitalization.id
+Ref: DoctorRating.doctor_id > Doctor.staff_id
+
+Ref: Image.doctor_id > Doctor.staff_id
+Ref: Image.nurse_id > Nurse.staff_id
+Ref: Image.admin_id > Admin.staff_id
+Ref: Image.department_id > Department.id
+Ref: Image.room_id > OperatingRoom.id
