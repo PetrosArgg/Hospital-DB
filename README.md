@@ -28,6 +28,7 @@ Welcome to the **Υγειόπολης** Hospital Management Database! This proje
 5. Diagnoses are recorded using real ICD-10 codes and billing is based on KEN codes - each with a base cost and an extra daily charge for stays that go beyond the median duration.
 6. Shift rules are enforced automatically via triggers: every shift needs at least 3 doctors, 6 nurses, and 2 admins. Residents can't be scheduled without a senior doctor present. Each staff member is subject to monthly shift caps, an 8-hour minimum rest between shifts, and no more than 3 night shifts in a row.
 7. Emergency contacts are stored in a separate table, apart from the patient record.
+8. Medical acts and lab exams are classified using the official Greek Ministry of Health categorization system. Medical acts follow categories A (Anesthesia) and B (Surgical/Interventional/Endoscopic), while lab exams follow categories C (Imaging), D (Biopathology) and E (Forensic/Pathological Anatomy/Cytology).
 
 ## Implementation
 
