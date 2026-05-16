@@ -263,8 +263,14 @@ CREATE TABLE LabExam_Ref (
     id INT AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(100) NOT NULL,
     name TEXT,
-    type VARCHAR(50) NOT NULL,
-    INDEX (code)
+    category VARCHAR(255) NOT NULL,
+    INDEX (code),
+    CONSTRAINT chk_lab_ref_category
+    CHECK (category IN (
+        'Γ. ΑΠΕΙΚΟΝΙΣΗ – ΕΠΕΜΒΑΤΙΚΕΣ ΚΑΙ ΘΕΡΑΠΕΥΤΙΚΕΣ ΑΚΤΙΝΙΚΕΣ ΠΡΑΞΕΙΣ',
+        'Δ. ΠΡΑΞΕΙΣ ΒΙΟΠΑΘΟΛΟΓΙΑΣ',
+        'Ε. ΠΡΑΞΕΙΣ ΙΑΤΡΟΔΙΚΑΣΤΙΚΗΣ – ΠΑΘΟΛΟΓΙΚΗΣ ΑΝΑΤΟΜΙΚΗΣ – ΚΥΤΤΑΡΟΛΟΓΙΑΣ'
+    ))
 );
 
 CREATE TABLE LabExam (
@@ -293,10 +299,13 @@ CREATE TABLE MedicalAct_Ref (
     id INT AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(100) NOT NULL,
     name TEXT,
-    category VARCHAR(30) NOT NULL,
+    category VARCHAR(255) NOT NULL,
     INDEX (code),
     CONSTRAINT chk_act_ref_category
-    CHECK (category IN ('Χειρουργική', 'Διαγνωστική', 'Θεραπευτική'))
+    CHECK (category IN (
+        'Α. ΠΡΑΞΕΙΣ ΑΙΝΑΙΣΘΗΣΙΑΣ',
+        'Β. ΠΡΑΞΕΙΣ ΧΕΙΡΟΥΡΓΙΚΕΣ – ΕΠΕΜΒΑΤΙΚΕΣ – ΕΝΔΟΣΚΟΠΙΚΕΣ'
+    ))
 );
 
 CREATE TABLE Medical_Acts (
