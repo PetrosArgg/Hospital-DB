@@ -547,10 +547,10 @@ BEGIN
     DECLARE v_min_adm     INT;
 
     SELECT d.min_doctors, d.min_nurses, d.min_admins
-    INTO   v_min_docs, v_min_nurs, v_min_adm
-    FROM   Shifts s
-    JOIN   Departments d ON s.department_id = d.id
-    WHERE  s.id = p_shift_id;
+    INTO v_min_docs, v_min_nurs, v_min_adm
+    FROM Shifts s
+    JOIN Departments d ON s.department_id = d.id
+    WHERE s.id = p_shift_id;
 
     SELECT
         SUM(CASE WHEN st.staff_type = 'doctor' THEN 1 ELSE 0 END),
@@ -586,15 +586,15 @@ BEGIN
     DECLARE v_new_rank       VARCHAR(30) DEFAULT NULL;
 
     SELECT d.rank INTO v_new_rank
-    FROM   Doctors d
-    WHERE  d.staff_id = p_new_staff_id;
+    FROM Doctors d
+    WHERE d.staff_id = p_new_staff_id;
 
     SELECT EXISTS (
         SELECT 1
-        FROM   Staff_Shifts ss
-        JOIN   Doctors d ON d.staff_id = ss.staff_id
-        WHERE  ss.shift_id = p_shift_id
-          AND  d.rank = 'Ειδικευόμενος'
+        FROM Staff_Shifts ss
+        JOIN Doctors d ON d.staff_id = ss.staff_id
+        WHERE ss.shift_id = p_shift_id
+          AND d.rank = 'Ειδικευόμενος'
     ) INTO v_has_resident;
 
     IF v_new_rank = 'Ειδικευόμενος' THEN
@@ -604,10 +604,10 @@ BEGIN
     IF v_has_resident THEN
         SELECT EXISTS (
             SELECT 1
-            FROM   Staff_Shifts ss
-            JOIN   Doctors d ON d.staff_id = ss.staff_id
-            WHERE  ss.shift_id = p_shift_id
-              AND  d.rank IN ('Επιμελητής Α΄', 'Διευθυντής')
+            FROM Staff_Shifts ss
+            JOIN Doctors d ON d.staff_id = ss.staff_id
+            WHERE ss.shift_id = p_shift_id
+              AND d.rank IN ('Επιμελητής Α΄', 'Διευθυντής')
         ) INTO v_has_supervisor;
 
         IF v_new_rank IN ('Επιμελητής Α΄', 'Διευθυντής') THEN
@@ -627,25 +627,25 @@ RETURNS BOOLEAN
 DETERMINISTIC
 READS SQL DATA
 BEGIN
-    DECLARE v_staff_type     VARCHAR(15);
-    DECLARE v_max_limit      INT;
+    DECLARE v_staff_type VARCHAR(15);
+    DECLARE v_max_limit INT;
     DECLARE v_current_shifts INT DEFAULT 0;
 
     SELECT staff_type INTO v_staff_type
-    FROM   Staff
-    WHERE  id = p_staff_id;
+    FROM Staff
+    WHERE id = p_staff_id;
 
     CASE v_staff_type
         WHEN 'doctor' THEN SET v_max_limit = 15;
-        WHEN 'nurse'  THEN SET v_max_limit = 20;
-        WHEN 'admin'  THEN SET v_max_limit = 25;
-        ELSE               SET v_max_limit = 999;
+        WHEN 'nurse' THEN SET v_max_limit = 20;
+        WHEN 'admin' THEN SET v_max_limit = 25;
+        ELSE SET v_max_limit = 999;
     END CASE;
 
     SELECT COALESCE(ml_num, 0) INTO v_current_shifts
-    FROM   Shift_Monthly_Limits
+    FROM Shift_Monthly_Limits
     WHERE  staff_id = p_staff_id
-      AND  ml_year  = YEAR(p_date)
+      AND  ml_year = YEAR(p_date)
       AND  ml_month = MONTH(p_date);
 
     RETURN v_current_shifts < v_max_limit;
@@ -660,17 +660,17 @@ RETURNS BOOLEAN
 DETERMINISTIC
 READS SQL DATA
 BEGIN
-    DECLARE v_shift_date    DATE;
-    DECLARE v_shift_type    VARCHAR(9);
-    DECLARE v_check_date    DATE;
-    DECLARE v_count_prev    INT DEFAULT 0;
-    DECLARE v_count_next    INT DEFAULT 0;
-    DECLARE v_found         BOOLEAN;
+    DECLARE v_shift_date DATE;
+    DECLARE v_shift_type VARCHAR(9);
+    DECLARE v_check_date DATE;
+    DECLARE v_count_prev INT DEFAULT 0;
+    DECLARE v_count_next INT DEFAULT 0;
+    DECLARE v_found BOOLEAN;
 
     SELECT shift_date, shift_type
-    INTO   v_shift_date, v_shift_type
-    FROM   Shifts
-    WHERE  id = p_shift_id;
+    INTO v_shift_date, v_shift_type
+    FROM Shifts
+    WHERE id = p_shift_id;
 
     IF v_shift_type != 'Night' THEN
         RETURN TRUE;
@@ -682,11 +682,11 @@ BEGIN
     WHILE v_found DO
         SELECT EXISTS (
             SELECT 1
-            FROM   Staff_Shifts ss
-            JOIN   Shifts s ON ss.shift_id = s.id
-            WHERE  ss.staff_id  = p_staff_id
-              AND  s.shift_date = v_check_date
-              AND  s.shift_type = 'Night'
+            FROM Staff_Shifts ss
+            JOIN Shifts s ON ss.shift_id = s.id
+            WHERE ss.staff_id  = p_staff_id
+              AND s.shift_date = v_check_date
+              AND s.shift_type = 'Night'
         ) INTO v_found;
 
         IF v_found THEN
@@ -701,11 +701,11 @@ BEGIN
     WHILE v_found DO
         SELECT EXISTS (
             SELECT 1
-            FROM   Staff_Shifts ss
-            JOIN   Shifts s ON ss.shift_id = s.id
-            WHERE  ss.staff_id  = p_staff_id
-              AND  s.shift_date = v_check_date
-              AND  s.shift_type = 'Night'
+            FROM Staff_Shifts ss
+            JOIN Shifts s ON ss.shift_id = s.id
+            WHERE ss.staff_id  = p_staff_id
+              AND s.shift_date = v_check_date
+              AND s.shift_type = 'Night'
         ) INTO v_found;
 
         IF v_found THEN
@@ -732,9 +732,9 @@ RETURNS DATETIME
 DETERMINISTIC
 BEGIN
     RETURN CASE p_shift_type
-        WHEN 'Morning'   THEN TIMESTAMP(p_shift_date, '07:00:00')
+        WHEN 'Morning' THEN TIMESTAMP(p_shift_date, '07:00:00')
         WHEN 'Afternoon' THEN TIMESTAMP(p_shift_date, '15:00:00')
-        WHEN 'Night'     THEN TIMESTAMP(p_shift_date, '23:00:00')
+        WHEN 'Night' THEN TIMESTAMP(p_shift_date, '23:00:00')
     END;
 END$$
 
@@ -745,9 +745,9 @@ RETURNS DATETIME
 DETERMINISTIC
 BEGIN
     RETURN CASE p_shift_type
-        WHEN 'Morning'   THEN TIMESTAMP(p_shift_date, '15:00:00')
+        WHEN 'Morning' THEN TIMESTAMP(p_shift_date, '15:00:00')
         WHEN 'Afternoon' THEN TIMESTAMP(p_shift_date, '23:00:00')
-        WHEN 'Night'     THEN TIMESTAMP(DATE_ADD(p_shift_date, INTERVAL 1 DAY), '07:00:00')
+        WHEN 'Night' THEN TIMESTAMP(DATE_ADD(p_shift_date, INTERVAL 1 DAY), '07:00:00')
     END;
 END$$
 
@@ -1036,34 +1036,6 @@ END$$
 
 DELIMITER ;
 
--- DELIMITER $$
-
--- DROP EVENT IF EXISTS evt_check_daily_coverage$$
-
--- CREATE EVENT evt_check_daily_coverage
--- ON SCHEDULE EVERY 1 DAY
--- STARTS CURRENT_DATE + INTERVAL 1 DAY
--- DO
--- BEGIN
---     -- Εισάγει αυτόματα τις βάρδιες που λείπουν για κάθε τμήμα
---     INSERT IGNORE INTO Shifts (department_id, shift_type, shift_date, shift_status)
---     SELECT d.id, t.shift_type, CURRENT_DATE, 'scheduled'
---     FROM   Departments d
---     CROSS JOIN (
---         SELECT 'Morning'   AS shift_type UNION ALL
---         SELECT 'Afternoon' UNION ALL
---         SELECT 'Night'
---     ) t
---     WHERE NOT EXISTS (
---         SELECT 1 FROM Shifts s
---         WHERE  s.department_id = d.id
---           AND  s.shift_date    = CURRENT_DATE
---           AND  s.shift_type    = t.shift_type
---     );
--- END$$
-
--- DELIMITER ;
-
 DELIMITER $$
 
 DROP TRIGGER IF EXISTS trg_check_medical_act_conflicts$$
@@ -1208,7 +1180,7 @@ BEGIN
         IF v_actual_days <= v_mdn_days THEN
             SET NEW.total_cost = v_base_cost;
         ELSE
-            SET v_extra_days  = v_actual_days - v_mdn_days;
+            SET v_extra_days = v_actual_days - v_mdn_days;
             SET v_daily_rate  = v_base_cost / v_mdn_days;
             SET NEW.total_cost = v_base_cost + (v_extra_days * v_daily_rate);
         END IF;

@@ -30,7 +30,6 @@ def escape_str(val):
         return str(val)
     if isinstance(val, bool):
         return "TRUE" if val else "FALSE"
-    # Escape backslashes and single quotes for SQL
     return f"'{str(val).replace('\\', '\\\\').replace(chr(39), chr(39)+chr(39))}'"
 
 def write_inserts(f, table_name, data):
@@ -60,12 +59,11 @@ def load_ken_ref():
     if os.path.exists(path):
         with open(path, 'r', encoding='utf-8-sig') as f:
             reader = csv.reader(f, delimiter=';')
-            next(reader, None) # skip header
+            next(reader, None)
             for i, row in enumerate(reader, 1):
                 if row and len(row) >= 4:
                     code = row[0].strip().replace('\xa0', '')
                     if not code or code == '-': continue
-                    # Cleanup cost string
                     cost_str = row[2].replace('€', '').replace('\xa0', '').replace(' ', '').replace('.', '').replace(',', '.')
                     try:
                         cost = float(cost_str)
@@ -98,7 +96,6 @@ def load_meds_and_subs():
                 meds.append([med_id_counter, prod_name])
                 
                 if sub_raw:
-                    # Split by | for multiple substances
                     sub_names = [s.strip() for s in sub_raw.split('|') if s.strip()]
                     for sn in sub_names:
                         if sn not in subs_map:
@@ -148,7 +145,7 @@ def load_split_refs(path, target_type):
         data.append([1, 'REF01', 'Default Ref', fallback_cat])
     return data
 
-# --- Main Generation ---
+# Main Generation 
 icd10_ref = load_icd10()
 ken_ref = load_ken_ref()
 active_subs, medications, med_substances = load_meds_and_subs()
@@ -170,7 +167,7 @@ with open('load.sql', 'w', encoding='utf-8') as f:
     depts_data = []
     dept_names = ['Καρδιολογία', 'Χειρουργική', 'ΜΕΘ','Παθολογικό', 'Ορθοπεδικό', 'Παιδιατρικό', 'Νευρολογικό', 'Ουρολογικό', 'Οφθαλμολογικό', 'ΩΡΛ', 'Δερματολογικό', 'Γυναικολογικό', 'Ψυχιατρικό', 'Ακτινολογικό', 'Επείγοντα']
     for i in range(1, NUM_DEPARTMENTS + 1):
-        head_doc = random.randint(1, 10) # Picking from the directors pool
+        head_doc = random.randint(1, 10)
         depts_data.append([i, dept_names[i-1], f"Περιγραφή τμήματος {dept_names[i-1]}", random.randint(10, 40), f"Όροφος {random.randint(0,4)}", head_doc, 3, 6, 2])
     write_inserts(f, 'Departments', depts_data)
 
@@ -204,7 +201,7 @@ with open('load.sql', 'w', encoding='utf-8') as f:
             fake.date_time_this_month(), fake.date_time_this_month()
         ])
     write_inserts(f, 'Patients', patients_data)
-    # Doctors (FK: Staff)
+    # Doctors
     doctors_data = []  
     directors_ids = list(range(1, 11))
     epi_a_ids = list(range(11, 31))
@@ -232,7 +229,6 @@ with open('load.sql', 'w', encoding='utf-8') as f:
     # Nurses
     nurses_data = []
     for i in range(NUM_DOCTORS + 1, NUM_DOCTORS + NUM_NURSES + 1):
-        # Ensure some nurses are in the 'Επείγοντα' department (ID 15)
         if i <= NUM_DOCTORS + 15:
             dept_id = 15
         else:
@@ -306,6 +302,12 @@ with open('load.sql', 'w', encoding='utf-8') as f:
         exit_d = entry + timedelta(days=random.randint(1, 15))
         year = entry.year
         
+        if i <= 4:
+            p_id = 1
+            dept_id = 1
+        else:
+            dept_id = random.randint(1, NUM_DEPARTMENTS)
+        
         icd_in = None
         if year in [2025, 2026]:
             for cat in target_categories:
@@ -318,7 +320,7 @@ with open('load.sql', 'w', encoding='utf-8') as f:
         if not icd_in:
             icd_in = random.choice(random_icd_pool)
             
-        hosp_data.append([i, p_id, random.randint(1, NUM_BEDS), random.randint(1, NUM_DEPARTMENTS), entry, exit_d, icd_in, random.choice(icd_codes), random.choice(ken_codes), round(random.uniform(500, 5000), 2), i])
+        hosp_data.append([i, p_id, random.randint(1, NUM_BEDS), dept_id, entry, exit_d, icd_in, random.choice(icd_codes), random.choice(ken_codes), round(random.uniform(500, 5000), 2), i])
     write_inserts(f, 'Hospitalizations', hosp_data)
 
     # Shifts
@@ -351,7 +353,6 @@ with open('load.sql', 'w', encoding='utf-8') as f:
             h_start, h_end = h_info[4], h_info[5]
             
             duration = random.randint(30, 180)
-            # Pick a random time within hospitalization period
             time_diff = int((h_end - h_start).total_seconds())
             if time_diff > duration * 60:
                 start_time = h_start + timedelta(seconds=random.randint(0, time_diff - duration * 60))
@@ -365,7 +366,6 @@ with open('load.sql', 'w', encoding='utf-8') as f:
             else:
                 doc_id = random.randint(1, NUM_DOCTORS)
             
-            # Check room conflict
             r_conflict = False
             for s, e in room_busy_slots.get(room_id, []):
                 if not (end_time <= s or start_time >= e):
@@ -373,7 +373,6 @@ with open('load.sql', 'w', encoding='utf-8') as f:
                     break
             if r_conflict: continue
             
-            # Check doctor conflict
             d_conflict = False
             for s, e in doctor_busy_slots.get(doc_id, []):
                 if not (end_time <= s or start_time >= e):
@@ -381,13 +380,11 @@ with open('load.sql', 'w', encoding='utf-8') as f:
                     break
             if d_conflict: continue
             
-            # Save if no conflict
             room_busy_slots.setdefault(room_id, []).append((start_time, end_time))
             doctor_busy_slots.setdefault(doc_id, []).append((start_time, end_time))
             medical_acts.append([i, random.choice(act_codes), duration, 600.0, start_time, h_id, room_id, doc_id])
             break
         else:
-            # Fallback (unlikely given density)
             medical_acts.append([i, random.choice(act_codes), 60, 600.0, datetime.now(), 1, 1, 1])
     
     write_inserts(f, 'Medical_Acts', medical_acts)
@@ -396,33 +393,41 @@ with open('load.sql', 'w', encoding='utf-8') as f:
     presc_data = []
     med_ids = [m[0] for m in medications]
     
-    # Pre-map medications to their active substances for faster lookup
     med_to_subs = {}
     for med_id, sub_id in med_substances:
         med_to_subs.setdefault(med_id, set()).add(sub_id)
         
-    # Pre-map patients to their allergic substances
     patient_allergies = {}
     for p_id, sub_id in allergies_data:
         patient_allergies.setdefault(p_id, set()).add(sub_id)
 
     for i in range(1, NUM_PRESCRIPTIONS + 1):
-        h_id = random.randint(1, NUM_HOSPITALIZATIONS)
+        if i <= 4: h_id, force_med = i, med_ids[0]
+        elif i <= 8: h_id, force_med = i - 4, med_ids[1]
+        elif i <= 11: h_id, force_med = i - 4, med_ids[2]
+        elif i <= 14: h_id, force_med = i - 7, med_ids[3]
+        elif i <= 16: h_id, force_med = i - 7, med_ids[4]
+        elif i <= 18: h_id, force_med = i - 9, med_ids[5]
+        else:
+            h_id = random.randint(10, NUM_HOSPITALIZATIONS)
+            force_med = None
+            
         p_id = hosp_data[h_id-1][1]
         
-        # Pick a medication that the patient is NOT allergic to
-        safe_med_found = False
-        for _ in range(50): # Retry to find a safe medication
-            m_id = random.choice(med_ids)
-            # Check if the medication's substances intersect with the patient's allergies
-            if not (med_to_subs.get(m_id, set()) & patient_allergies.get(p_id, set())):
-                safe_med_found = True
-                break
+        if force_med is not None:
+            safe_med_found = True
+            m_id = force_med
+        else:
+            safe_med_found = False
+            for _ in range(50):
+                m_id = random.choice(med_ids)
+                if not (med_to_subs.get(m_id, set()) & patient_allergies.get(p_id, set())):
+                    safe_med_found = True
+                    break
         
         if safe_med_found:
             presc_data.append([i, random.randint(1, NUM_DOCTORS), p_id, m_id, h_id, fake.date_this_year(), fake.date_this_year(), "1 χάπι", "8 ώρες"])
         else:
-            # Fallback to a random medication if retry fails (unlikely given density)
             presc_data.append([i, random.randint(1, NUM_DOCTORS), p_id, random.choice(med_ids), h_id, fake.date_this_year(), fake.date_this_year(), "1 χάπι", "8 ώρες"])
             
     write_inserts(f, 'Prescriptions', presc_data)
@@ -438,7 +443,6 @@ with open('load.sql', 'w', encoding='utf-8') as f:
     doctor_ratings = []
     seen_doctor_hosp = set()
     for p in presc_data:
-        # p = [id, doctor_id, patient_id, med_id, hospitalization_id, ...]
         doc_id, h_id = p[1], p[4]
         if (h_id, doc_id) not in seen_doctor_hosp and random.random() > 0.4:
             doctor_ratings.append([h_id, doc_id, random.randint(3, 5)])
@@ -489,8 +493,8 @@ with open('load.sql', 'w', encoding='utf-8') as f:
     # To prevent rest period, consecutive nights, and monthly limit conflicts.
     staff_shifts = []
     shift_staff = {}
-    staff_busy_slots = {} # staff_id -> (last_end_time, consecutive_nights_count)
-    staff_monthly_count = {} # staff_id -> {month: count}
+    staff_busy_slots = {}
+    staff_monthly_count = {}
 
     def get_max_limit(st_id):
         if st_id <= NUM_DOCTORS: return 15
@@ -525,31 +529,24 @@ with open('load.sql', 'w', encoding='utf-8') as f:
         month_key = (s_date.year, s_date.month)
         
         if random.random() > 0.7:
-            for _ in range(100): # More retries
+            for _ in range(100):
                 st_id = random.randint(1, NUM_DOCTORS + NUM_NURSES + NUM_ADMINS)
-                
-                # Prevent assigning a resident to a shift without an existing supervisor.
                 if st_id <= NUM_DOCTORS and doctor_rank_by_id.get(st_id) == 'Ειδικευόμενος' and not has_supervisor_on_shift(s_id):
                     continue
-
-                # Check monthly limit
                 limit = get_max_limit(st_id)
                 current_count = staff_monthly_count.get(st_id, {}).get(month_key, 0)
-                if current_count >= limit - 1: # -1 to be safe against trigger logic
+                if current_count >= limit - 1:
                     continue
 
                 last_end, night_count = staff_busy_slots.get(st_id, (datetime.min, 0))
                 
-                # Check rest period (min 8 hours)
                 if s_start < last_end + timedelta(hours=8):
                     continue
                 
-                # Check consecutive nights (max 3)
                 new_night_count = (night_count + 1) if stype == 'Night' else 0
                 if new_night_count > 3:
                     continue
                 
-                # Success
                 staff_busy_slots[st_id] = (s_end, new_night_count)
                 staff_monthly_count.setdefault(st_id, {})[month_key] = current_count + 1
                 staff_shifts.append([st_id, s_id, s_start.strftime('%H:%M'), s_end.strftime('%H:%M'), s_date])
@@ -560,7 +557,7 @@ with open('load.sql', 'w', encoding='utf-8') as f:
 
     # Medical Act Assistants
     act_assts = []
-    assistant_busy_slots = {} # staff_id -> list of (start, end)
+    assistant_busy_slots = {}
     for i in range(1, NUM_MEDICAL_ACTS + 1):
         act_info = medical_acts[i-1]
         start_time = act_info[4]
@@ -569,7 +566,6 @@ with open('load.sql', 'w', encoding='utf-8') as f:
         for _ in range(100):
             asst_id = random.randint(NUM_DOCTORS+1, NUM_DOCTORS+NUM_NURSES)
             
-            # Check assistant conflict
             conflict = False
             for s, e in assistant_busy_slots.get(asst_id, []):
                 if not (end_time <= s or start_time >= e):

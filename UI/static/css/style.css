@@ -101,6 +101,7 @@ th,
 td {
     padding: 12px;
     text-align: left;
+    white-space: nowrap;
 }
 
 th {
@@ -256,6 +257,7 @@ tr:nth-child(even) {
     border-radius: 8px;
     padding: 30px;
     min-height: 500px;
+    min-width: 0;
 }
 
 .query-header h2 {
