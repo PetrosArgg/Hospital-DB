@@ -188,7 +188,6 @@ CREATE TABLE Medications (
     product_name TEXT
 );
 
--- Ενδιάμεσος πίνακας (M to M)
 CREATE TABLE Medication_Substances (
     medication_id INT NOT NULL,
     substance_id INT NOT NULL,
@@ -323,7 +322,6 @@ CREATE TABLE Medical_Acts (
     FOREIGN KEY (act_code) REFERENCES MedicalAct_Ref(code) ON DELETE RESTRICT
 );
 
--- Πίνακας γέφυρα για βοηθούς  επέμβασης (M:N)
 CREATE TABLE Medical_Act_Assistants (
     act_id INT NOT NULL,
     staff_id INT NOT NULL,

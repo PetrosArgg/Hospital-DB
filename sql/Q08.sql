@@ -33,7 +33,7 @@ FROM Staff s
 LEFT JOIN Doctors d ON s.id = d.staff_id
 LEFT JOIN Nurses n ON s.id = n.staff_id
 LEFT JOIN Administrative_Staff a ON s.id = a.staff_id
-JOIN Departments dep ON dep.name = '...'
+JOIN Departments dep ON dep.name = 'Ακτινολογικό'
 WHERE s.active = TRUE
     AND (
         EXISTS (SELECT 1 FROM Doctor_Departments dd

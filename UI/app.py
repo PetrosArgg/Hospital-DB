@@ -318,9 +318,10 @@ def queries():
                     sql_code = sql_code.replace("= 1", "= %s")
                     params_values.append(val)
                 elif query_id == 'Q8':
-                    date_val = request.form.get('shift_date', '2026-05-1')
+                    date_val = request.form.get('shift_date', '2026-05-01')
                     dept_val = request.form.get('dept_name', 'Χειρουργική')
-                    sql_code = sql_code.replace("'2026-05-1'", "%s").replace("'Χειρουργική'", "%s")
+                    sql_code = sql_code.replace("dep.name = '...'", "dep.name = %s", 1)
+                    sql_code = sql_code.replace("sh.shift_date = '2026-05-01'", "sh.shift_date = %s", 1)
                     params_values.extend([dept_val, date_val])
                 elif query_id == 'Q12':
                     start_val = request.form.get('start_date', '2026-05-04')

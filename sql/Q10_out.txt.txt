@@ -1,0 +1,5 @@
+|substance_1|substance_2                                                                                                                                                |frequency|
+|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+|Pregabalin |Minoxidil                                                                                                                                                  |1        |
+|Tamoxifen  |Dry Extract From Primula Root (6-7 : 1), Extracting Agent: Ethanol 47.4% (V/V), Dry Extract From Thyme Herb (6-10 : 1), Extracting Agent: Ethanol 70% (V/V)|1        |
+|Tamoxifen  |Desmopressin Acetate                                                                                                                                       |1        |

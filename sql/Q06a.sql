@@ -1,4 +1,4 @@
-EXPLAIN ANALYZE
+ANALYZE
 SELECT
     h.id AS hospitalization_id,
     h.entry_date,
