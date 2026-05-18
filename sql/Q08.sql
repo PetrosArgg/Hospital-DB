@@ -19,15 +19,15 @@ SELECT
     CASE s.staff_type
         WHEN 'doctor' THEN
             (SELECT GROUP_CONCAT(dep.name SEPARATOR ', ')
-             FROM   Doctor_Departments dd
-             JOIN   Departments dep ON dd.department_id = dep.id
-             WHERE  dd.doctor_id = s.id)
+             FROM Doctor_Departments dd
+             JOIN Departments dep ON dd.department_id = dep.id
+             WHERE dd.doctor_id = s.id)
         WHEN 'nurse' THEN
             (SELECT dep.name FROM Departments dep
-             WHERE  dep.id = n.department_id)
+             WHERE dep.id = n.department_id)
         WHEN 'admin' THEN
             (SELECT dep.name FROM Departments dep
-             WHERE  dep.id = a.department_id)
+             WHERE dep.id = a.department_id)
     END AS belongs_to_departments
 FROM Staff s
 LEFT JOIN Doctors d ON s.id = d.staff_id
