@@ -1,4 +1,7 @@
-EXPLAIN ANALYZE
+-- Τα αποτελέσματα των ANALYZE FORMAT=JSON και η σύγκριση 
+-- κόστους/χρόνου βρίσκονται αναλυτικά στο docs/report.pdf
+-- ANALYZE FORMAT=JSON
+
 SELECT
     h.id AS hospitalization_id,
     h.entry_date,
