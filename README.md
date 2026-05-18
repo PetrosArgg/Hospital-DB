@@ -29,6 +29,8 @@ Welcome to the **Υγειόπολης** Hospital Management Database! This proje
 6. Shift rules are enforced automatically via triggers: every shift needs at least 3 doctors, 6 nurses, and 2 admins. Residents can't be scheduled without a senior doctor present. Each staff member is subject to monthly shift caps, an 8-hour minimum rest between shifts, and no more than 3 night shifts in a row.
 7. Emergency contacts are stored in a separate table, apart from the patient record.
 8. Medical acts and lab exams are classified using the official Greek Ministry of Health categorization system. Medical acts follow categories A (Anesthesia) and B (Surgical/Interventional/Endoscopic), while lab exams follow categories C (Imaging), D (Biopathology) and E (Forensic/Pathological Anatomy/Cytology).
+9. Triage is handled exclusively by nurses assigned to the Emergency department, who operate independently of the standard shift scheduling system.
+10. Only doctors and nurses can participate in medical acts, admins are excluded. This is enforced via triggers.
 
 ## Implementation
 
